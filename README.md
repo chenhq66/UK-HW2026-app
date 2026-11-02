@@ -27,8 +27,6 @@ Based on the small-area environmental epidemiology framework developed at the **
 UKHW2026-app/
 ├── app.R                  # Main Shiny application entry point & reactive state orchestrator
 ├── 00_prep_app_data.R     # Data preparation pipeline (ETL: CSVs + GPKGs -> app_data/)
-├── ARCHITECTURE.md        # Technical architecture and data specification
-├── manucore.md            # Manuscript summary, abstract, and study methodology
 ├── R/
 │   ├── mod_map.R          # WebGL choropleth map module (mapgl / MapLibre GL JS)
 │   ├── mod_plots.R        # Synchronized Plotly visualizations (Figure 1 time series & rankings)
