@@ -1,0 +1,174 @@
+/* www/styles.css ---- */
+/* Publication-Grade Data Journalism Theme for UK Heatwave 2026 Explorer */
+
+:root {
+  --font-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-primary: #b30000;
+  --color-primary-dark: #8f0000;
+  --color-primary-subtle: #fee2e2;
+  --color-primary-text: #991b1b;
+  --color-surface: #ffffff;
+  --color-bg: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --radius-card: 10px;
+  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* 1. Global Typography and Layout ---- */
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Navbar / Header title styling */
+.app-header-title {
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+}
+
+.bslib-sidebar-layout > .sidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid var(--color-border) !important;
+}
+
+/* 2. Bespoke Card & Value Box Styling ---- */
+
+.card {
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  background-color: var(--color-surface) !important;
+  box-shadow: var(--shadow-subtle) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-float) !important;
+}
+
+/* Value Boxes */
+.bslib-value-box {
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  background: #ffffff !important;
+  padding: 1.1rem !important;
+  box-shadow: var(--shadow-subtle) !important;
+}
+
+.bslib-value-box .value-box-value {
+  font-weight: 800 !important;
+  font-size: 1.9rem !important;
+  letter-spacing: -0.04em !important;
+  color: #0f172a !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.bslib-value-box .value-box-title {
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: var(--color-text-muted) !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.bslib-value-box .value-box-showcase i,
+.bslib-value-box .value-box-showcase svg {
+  font-size: 1.8rem !important;
+  opacity: 0.85;
+}
+
+/* 3. Mapgl Container & Floating Controls ---- */
+
+.maplibre-container,
+.maplibreOutput {
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  overflow: hidden;
+}
+
+/* Floating Glassmorphic Legend */
+.mapgl-legend-glass {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 500;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow-float);
+  width: 230px;
+}
+
+/* Granularity Guardrail Alert */
+.mapgl-guardrail-banner {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  max-width: 480px;
+  z-index: 500;
+}
+
+.mapgl-guardrail-banner .alert {
+  border-radius: 7px;
+  font-size: 0.82rem;
+  box-shadow: var(--shadow-subtle);
+}
+
+/* 4. Filter Indicators & Badges ---- */
+
+.region-badge-active {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary-text);
+  border: 1px solid #fecaca;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 6px;
+}
+
+/* 5. Reactable Table Refinements ---- */
+
+.rt-search {
+  border: 1px solid var(--color-border) !important;
+  border-radius: 6px !important;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.85rem !important;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.rt-search:focus {
+  border-color: var(--color-primary) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.1) !important;
+}
+
+.rt-pagination {
+  font-size: 0.85rem !important;
+  padding: 0.5rem 0.25rem !important;
+}
+
+/* Tab bar modern pill styling */
+.nav-pills .nav-link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+  padding: 0.4rem 0.85rem;
+}
+
+.nav-pills .nav-link.active {
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
