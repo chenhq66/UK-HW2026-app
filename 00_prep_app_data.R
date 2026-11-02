@@ -73,7 +73,8 @@ summary_dt[, period_key := NULL]
 # Order columns logically
 setcolorder(summary_dt, c("geo_level", "rgn11cd", "rgn11nm", "agegr", "age", "period", "period_label"))
 write_parquet(summary_dt, file.path(app_data_dir, "summary_estimates.parquet"))
-cat("Saved summary_estimates.parquet (", nrow(summary_dt), "rows)\n")
+fwrite(summary_dt, file.path(app_data_dir, "summary_estimates.csv"))
+cat("Saved summary_estimates.parquet and summary_estimates.csv (", nrow(summary_dt), "rows)\n")
 
 ## Process daily series ----
 cat("Preparing daily_series.parquet...\n")
@@ -94,7 +95,8 @@ daily_dt[date >= as.IDate("2026-08-11") & date <= as.IDate("2026-08-15"), hw_eve
 
 setcolorder(daily_dt, c("date", "hw_event", "agegr", "age", "meantemp", "population", "estimate", "lower", "upper", "rate"))
 write_parquet(daily_dt, file.path(app_data_dir, "daily_series.parquet"))
-cat("Saved daily_series.parquet (", nrow(daily_dt), "rows)\n")
+fwrite(daily_dt, file.path(app_data_dir, "daily_series.csv"))
+cat("Saved daily_series.parquet and daily_series.csv (", nrow(daily_dt), "rows)\n")
 
 # 3. Spatial Processing: LADs and Regions ----
 
@@ -168,7 +170,15 @@ geo_lad <- lads_sf %>%
   left_join(lad_metrics, by = "lad11cd")
 
 saveRDS(geo_lad, file.path(app_data_dir, "geo_lad.rds"), compress = "gzip")
-cat("Saved geo_lad.rds (", nrow(geo_lad), "features)\n")
+st_write(
+  geo_lad,
+  file.path(app_data_dir, "geo_lad.geojson"),
+  driver = "GeoJSON",
+  delete_dsn = TRUE,
+  layer_options = "COORDINATE_PRECISION=5",
+  quiet = TRUE
+)
+cat("Saved geo_lad.rds and geo_lad.geojson (", nrow(geo_lad), "features)\n")
 
 ## Dissolve Regions from simplified LADs ----
 cat("Dissolving and processing Region boundaries...\n")
@@ -237,7 +247,15 @@ geo_region <- geo_region %>%
   left_join(reg_wide, by = "rgn11cd")
 
 saveRDS(geo_region, file.path(app_data_dir, "geo_region.rds"), compress = "gzip")
-cat("Saved geo_region.rds (", nrow(geo_region), "features)\n")
+st_write(
+  geo_region,
+  file.path(app_data_dir, "geo_region.geojson"),
+  driver = "GeoJSON",
+  delete_dsn = TRUE,
+  layer_options = "COORDINATE_PRECISION=5",
+  quiet = TRUE
+)
+cat("Saved geo_region.rds and geo_region.geojson (", nrow(geo_region), "features)\n")
 
 # 4. Spatial Processing: LSOAs ----
 
@@ -299,7 +317,18 @@ for (p in c("study_period", "hw1", "hw2", "hw3", "hw4", "hw5")) {
 
 cat("Saving geo_lsoa.rds...\n")
 saveRDS(geo_lsoa, file.path(app_data_dir, "geo_lsoa.rds"), compress = "gzip")
-cat("Saved geo_lsoa.rds (", nrow(geo_lsoa), "features)\n")
+
+cat("Saving geo_lsoa.geojson (excluding HTML tooltips for web performance)...\n")
+geo_lsoa_export <- geo_lsoa[, !grepl("^tip_", names(geo_lsoa))]
+st_write(
+  geo_lsoa_export,
+  file.path(app_data_dir, "geo_lsoa.geojson"),
+  driver = "GeoJSON",
+  delete_dsn = TRUE,
+  layer_options = "COORDINATE_PRECISION=5",
+  quiet = TRUE
+)
+cat("Saved geo_lsoa.rds and geo_lsoa.geojson (", nrow(geo_lsoa_export), "features)\n")
 
 # 5. Verification and Diagnostics ----
 

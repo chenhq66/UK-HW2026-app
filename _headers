@@ -1,0 +1,17 @@
+# _headers ----
+# Netlify Edge headers configuration for static assets
+
+/app_data/*.geojson
+  Content-Type: application/geo+json; charset=utf-8
+  Cache-Control: public, max-age=604800, immutable
+  Access-Control-Allow-Origin: *
+
+/app_data/*.csv
+  Content-Type: text/csv; charset=utf-8
+  Cache-Control: public, max-age=604800, immutable
+  Access-Control-Allow-Origin: *
+
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

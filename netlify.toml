@@ -1,0 +1,27 @@
+# netlify.toml ----
+# Deployment configuration for static Quarto Dashboard
+
+[build]
+  publish = "_site"
+
+# Caching and MIME headers for high-performance static delivery
+[[headers]]
+  for = "/app_data/*.geojson"
+  [headers.values]
+    Content-Type = "application/geo+json; charset=utf-8"
+    Cache-Control = "public, max-age=604800, immutable"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/app_data/*.csv"
+  [headers.values]
+    Content-Type = "text/csv; charset=utf-8"
+    Cache-Control = "public, max-age=604800, immutable"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

@@ -1,0 +1,21 @@
+project:
+  type: default
+  output-dir: _site
+  render:
+    - index.qmd
+  resources:
+    - "app_data/**"
+    - "_headers"
+
+format:
+  dashboard:
+    theme: litera
+    orientation: columns
+    include-in-header:
+      - text: |
+          <link href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css" rel="stylesheet" />
+          <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
+          <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
+execute:
+  echo: false

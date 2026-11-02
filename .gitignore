@@ -32,3 +32,5 @@ desktop.ini
 # Build and package artifacts
 *.tar.gz
 *.Rcheck/
+
+/.quarto/

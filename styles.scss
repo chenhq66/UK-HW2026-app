@@ -1,0 +1,492 @@
+/*-- scss:defaults --*/
+
+$primary: #b30000;
+$primary-dark: #8f0000;
+$secondary: #475569;
+$success: #059669;
+$info: #0284c7;
+$danger: #dc2626;
+$font-family-sans-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+$font-family-base: $font-family-sans-serif;
+$headings-font-family: $font-family-sans-serif;
+
+/*-- scss:rules --*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css');
+@import url('https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css');
+
+:root {
+  --font-primary: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-primary: #b30000;
+  --color-primary-dark: #8f0000;
+  --color-primary-subtle: #fee2e2;
+  --color-primary-text: #991b1b;
+  --color-surface: #ffffff;
+  --color-bg: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text-main: #0f172a;
+  --color-text-muted: #64748b;
+  --radius-card: 10px;
+  --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-float: 0 4px 14px 0 rgba(15, 23, 42, 0.08);
+}
+
+/* Global Typography and Body */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text-main);
+  font-family: var(--font-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Header & Navbar */
+#quarto-dashboard-header .navbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-subtle) !important;
+  padding: 0.6rem 1.25rem !important;
+}
+
+#quarto-dashboard-header .navbar-title-text a {
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 1.15rem !important;
+  letter-spacing: -0.03em !important;
+  text-decoration: none !important;
+}
+
+#quarto-dashboard-header .navbar-subtitle {
+  color: var(--color-text-muted) !important;
+  font-size: 0.88rem !important;
+  font-weight: 400 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+#quarto-dashboard-header .navbar-subtitle::after {
+  content: "Modelled Estimates";
+  display: inline-block;
+  margin-left: 0.65rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b30000;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+}
+
+/* Sidebar Customization */
+.quarto-dashboard-sidebar,
+.bslib-sidebar-layout > .sidebar,
+.sidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid var(--color-border) !important;
+  padding: 1.25rem 1rem !important;
+}
+
+.sidebar-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+/* Observable JS Inputs styling inside Sidebar */
+.sidebar form {
+  font-family: var(--font-primary) !important;
+  margin-bottom: 0.85rem !important;
+}
+
+.sidebar form > label {
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+  color: var(--color-text-muted) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  margin-bottom: 0.35rem !important;
+  display: block !important;
+}
+
+.sidebar select,
+.sidebar input[type="text"] {
+  font-size: 0.85rem !important;
+  border-radius: 6px !important;
+  border: 1px solid var(--color-border) !important;
+  padding: 0.4rem 0.6rem !important;
+  width: 100% !important;
+  background-color: #ffffff !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.sidebar select:focus,
+.sidebar input[type="text"]:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.1) !important;
+  outline: none !important;
+}
+
+/* OJS Radio Inputs */
+.sidebar form div[role="radiogroup"] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.3rem !important;
+}
+
+.sidebar form div[role="radiogroup"] label {
+  font-weight: 500 !important;
+  font-size: 0.85rem !important;
+  color: var(--color-text-main) !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+}
+
+/* Reset & Action Buttons in Sidebar */
+.sidebar button {
+  width: 100% !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 0.4rem 0.75rem !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+}
+
+.btn-reset-wrapper button {
+  background-color: #ffffff !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-main) !important;
+}
+
+.btn-reset-wrapper button:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+}
+
+.btn-about-wrapper button {
+  background-color: #ffffff !important;
+  border: 1px solid #fca5a5 !important;
+  color: var(--color-primary) !important;
+  margin-top: 0.4rem !important;
+}
+
+.btn-about-wrapper button:hover {
+  background-color: #fef2f2 !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* Value Boxes */
+.custom-value-box-card {
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  background: #ffffff !important;
+  padding: 1rem 1.25rem !important;
+  box-shadow: var(--shadow-subtle) !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease !important;
+  height: 100%;
+}
+
+.custom-value-box-card:hover {
+  box-shadow: var(--shadow-float) !important;
+  transform: translateY(-2px);
+}
+
+.value-box-title {
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  color: var(--color-text-muted) !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.value-box-value {
+  font-weight: 800 !important;
+  font-size: 1.85rem !important;
+  letter-spacing: -0.04em !important;
+  color: #0f172a !important;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+}
+
+.value-box-subtext {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-top: 0.2rem;
+  margin-bottom: 0;
+}
+
+.value-box-icon {
+  font-size: 2rem;
+  color: var(--color-primary);
+  opacity: 0.9;
+}
+
+/* Cards & Layout */
+.card {
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-card) !important;
+  background-color: var(--color-surface) !important;
+  box-shadow: var(--shadow-subtle) !important;
+}
+
+.card-header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  font-weight: 700 !important;
+  font-size: 0.88rem !important;
+  color: #0f172a !important;
+}
+
+/* Region Filter Badges */
+.region-badge-active {
+  background-color: var(--color-primary-subtle);
+  color: var(--color-primary-text);
+  border: 1px solid #fecaca;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+}
+
+/* Map Container & Floating Elements */
+#map-container {
+  width: 100%;
+  height: 100%;
+  min-height: 580px;
+  border-radius: 0 0 var(--radius-card) var(--radius-card);
+  overflow: hidden;
+  position: relative;
+}
+
+.maplibre-container,
+.maplibregl-map {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-family: var(--font-primary) !important;
+}
+
+/* Floating Glassmorphic Legend */
+.mapgl-legend-glass {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow-float);
+  width: 230px;
+  pointer-events: auto;
+}
+
+/* Granularity Guardrail Floating Banner */
+.mapgl-guardrail-banner {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  max-width: 480px;
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.mapgl-guardrail-banner .alert {
+  border-radius: 7px;
+  font-size: 0.82rem;
+  box-shadow: var(--shadow-subtle);
+}
+
+/* MapLibre Tooltip Popup */
+.maplibregl-popup {
+  z-index: 100;
+  pointer-events: none;
+}
+
+.maplibregl-popup-content {
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  box-shadow: var(--shadow-float) !important;
+  border: 1px solid var(--color-border) !important;
+  font-family: var(--font-primary) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(4px) !important;
+  line-height: 1.4 !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+/* Methods tab styling */
+.methods-box {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  padding: 1.25rem;
+}
+
+.methods-box h5 {
+  font-weight: 700;
+  color: var(--color-text-main);
+  margin-top: 1rem;
+  font-size: 0.98rem;
+}
+
+.methods-box h5:first-child {
+  margin-top: 0;
+}
+
+.methods-box ul {
+  padding-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.methods-box li {
+  margin-bottom: 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.methods-box p {
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+}
+
+/* Plot Sub-Tab Navigation */
+.plot-subtab-bar {
+  display: flex;
+  gap: 0.35rem;
+  background-color: #f1f5f9;
+  padding: 0.25rem;
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.plot-subtab-btn {
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.plot-subtab-btn:hover {
+  color: var(--color-text-main);
+}
+
+.plot-subtab-btn.active {
+  background-color: #ffffff;
+  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Custom Table Styling */
+.custom-summary-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.82rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.custom-summary-table th {
+  background-color: #f8fafc;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid var(--color-border);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.custom-summary-table th:hover {
+  color: var(--color-primary);
+  background-color: #f1f5f9;
+}
+
+.custom-summary-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.custom-summary-table tr:hover td {
+  background-color: #fef2f2;
+}
+
+.custom-summary-table .col-numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.inline-bar-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  height: 22px;
+}
+
+.inline-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.inline-bar-fill-estimate {
+  background-color: #b30000;
+  opacity: 0.16;
+}
+
+.inline-bar-fill-rate {
+  background-color: #dc2626;
+  opacity: 0.16;
+}
+
+.inline-bar-text {
+  position: relative;
+  z-index: 2;
+  padding-left: 4px;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* Suppress Observable raw data inspector trees */
+.observablehq--inspect,
+.observablehq--error:empty {
+  display: none !important;
+}
+
