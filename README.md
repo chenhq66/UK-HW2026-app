@@ -21,7 +21,69 @@ Based on the small-area environmental epidemiology framework developed at the **
 
 ---
 
-## Application Architecture & Features
+## Application Architecture & Data Flow
+
+```mermaid
+flowchart TD
+    subgraph DataStore["High-Performance Data Layer (app_data/)"]
+        ParquetData["Columnar Parquet Store<br/>summary_estimates.parquet<br/>daily_series.parquet"]
+        SpatialData["Simplified WGS84 sf Cache<br/>geo_region.rds (10 features)<br/>geo_lad.rds (348 features)<br/>geo_lsoa.rds (34,753 features)"]
+    end
+
+    subgraph StateEngine["Application Core & Reactive State (app.R)"]
+        SidebarInputs["Sidebar Controls<br/>Period | Metric | Tier | Age"]
+        GlobalState["Shared State (reactiveValues)<br/>period, metric, geo_level, age_group, selected_region"]
+        KPICards["Reactive Value Boxes<br/>Total Excess Deaths (95% eCI)<br/>Mortality Rate / Million (95% eCI)<br/>Elderly Share (Ages 75+)"]
+        SidebarInputs -->|User Input| GlobalState
+        GlobalState -->|Triggers| KPICards
+    end
+
+    subgraph Modules["Modular Presentation Layer (R/)"]
+        subgraph MapModule["Spatial Module (R/mod_map.R)"]
+            MapInit["Initial Mount (renderMaplibre)<br/>Carto Positron Basemap<br/>3 Pre-loaded sf Layers"]
+            MapProxy["Zero-Redraw Proxy (maplibre_proxy)<br/>set_paint_property(fill-color)<br/>set_layout_property(visibility)"]
+            MapClick["Feature Click Observer<br/>input$map_feature_click"]
+        end
+
+        subgraph PlotModule["Visualization Module (R/mod_plots.R)"]
+            TSPlot["Dual-Axis Daily Time Series<br/>Excess Deaths + ERA5 Temperature<br/>Dynamic Heatwave Zoom"]
+            RankPlot["Regional & Age Distribution<br/>95% Empirical Confidence Intervals<br/>Active Region Highlight"]
+        end
+
+        subgraph TableModule["Data Module (R/mod_tables.R)"]
+            ReactTable["Virtualized Reactable Table<br/>Inline Proportion Heatbars<br/>Client-Side Search & Sorting"]
+            CSVExport["Download Handler<br/>Clean CSV Generation"]
+        end
+    end
+
+    subgraph ClientDOM["Client Presentation (Browser)"]
+        WebGLCanvas["MapLibre WebGL Canvas<br/>GPU-Accelerated Shader Styling<br/>Zero WebSocket Redraws"]
+        PlotlyDOM["Plotly.js Interactive Visuals"]
+        TableDOM["Searchable HTML Table DOM"]
+    end
+
+    %% Data Pipeline
+    ParquetData -->|Columnar Scan| KPICards
+    ParquetData -->|Filter by Age & Scope| PlotModule
+    ParquetData -->|Tabular Feed| ReactTable
+    SpatialData -->|Mount Once on Startup| MapInit
+
+    %% State Synchronization
+    GlobalState -->|Reactive Signal| MapProxy
+    GlobalState -->|Reactive Signal| PlotModule
+    GlobalState -->|Reactive Signal| ReactTable
+    MapClick -->|Regional Cross-Filter| GlobalState
+
+    %% Client Rendering
+    MapProxy -->|GPU Paint Updates| WebGLCanvas
+    MapInit -->|Initial WebGL Context| WebGLCanvas
+    WebGLCanvas -.->|Polygon Click| MapClick
+    PlotModule --> PlotlyDOM
+    ReactTable --> TableDOM
+    CSVExport -.->|File Stream| BrowserDownload["Client CSV Download"]
+```
+
+### Directory Structure
 
 ```
 UKHW2026-app/
