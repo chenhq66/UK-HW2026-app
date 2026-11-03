@@ -4,12 +4,16 @@ project:
   render:
     - index.qmd
   resources:
-    - "app_data/**"
+    - "app_data/*.csv"
+    - "app_data/*.parquet"
+    - "app_data/*.geojson"
     - "_headers"
 
 format:
   dashboard:
-    theme: litera
+    theme:
+      - litera
+      - styles.scss
     orientation: columns
     include-in-header:
       - text: |

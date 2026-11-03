@@ -2,104 +2,57 @@
 title: "UK Heatwave 2026: Excess Mortality Explorer"
 format:
   dashboard:
-    theme: litera
+    theme:
+      - litera
+      - styles.scss
     orientation: columns
 execute:
   echo: false
 ---
 
-<style>
-.observablehq--inspect {
-  display: none !important;
-}
-.card:has(#map-viewport) .card-body {
-  padding: 0 !important;
-}
-#map-viewport {
-  width: 100%;
-  height: 100%;
-}
-.map-legend {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(6px);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 11px;
-  z-index: 50;
-  width: 200px;
-}
-.custom-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 11.5px;
-}
-.custom-table th {
-  background: #f8fafc;
-  padding: 5px 8px;
-  border-bottom: 2px solid #e2e8f0;
-  color: #475569;
-  font-weight: 700;
-  text-align: left;
-  white-space: nowrap;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-.custom-table td {
-  padding: 4px 8px;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
-}
-.custom-table tr:hover {
-  background-color: #fef2f2;
-}
-.inline-bar-bg {
-  position: relative;
-  width: 100%;
-  height: 18px;
-  display: flex;
-  align-items: center;
-}
-.inline-bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  background: rgba(179, 0, 0, 0.16);
-  border-radius: 2px;
-}
-.inline-bar-text {
-  position: relative;
-  z-index: 2;
-  font-size: 11px;
-  padding-left: 4px;
-  font-variant-numeric: tabular-nums;
-}
-</style>
-
-## {.sidebar width="280px"}
+## {.sidebar width="285px"}
 
 ### Analysis Controls
 
 ```{ojs}
-// 1. Data Attachments
-summary_data = FileAttachment("app_data/summary_estimates.csv").csv({ typed: true })
-daily_data = FileAttachment("app_data/daily_series.csv").csv({ typed: true })
+// 1. Pre-processed Static Data Attachments & Shared State
+raw_summary = FileAttachment("app_data/summary_estimates.csv").csv({ typed: true })
+raw_daily = FileAttachment("app_data/daily_series.csv").csv({ typed: true })
 
-// 2. Interactive Selectors
+summary_data = raw_summary
+daily_data = raw_daily.map(d => {
+  return Object.assign({}, d, {
+    dateStr: d.date instanceof Date ? d.date.toISOString().slice(0, 10) : String(d.date)
+  });
+})
+
+mutable selected_region = "All"
+mutable selected_region_name = "England & Wales"
+mutable table_sort_col = "rate"
+mutable table_sort_asc = false
+
+state = {
+  return {
+    period,
+    metric,
+    geo_level,
+    age_group,
+    region: selected_region,
+    regionName: selected_region_name
+  };
+}
+```
+
+```{ojs}
+// 2. Interactive Controls
 viewof period = Inputs.select(
   new Map([
     ["Full Season (1 May–30 Sep)", "study_period"],
-    ["HW1: 22–28 May", "hw1"],
-    ["HW2: 18–28 June", "hw2"],
-    ["HW3: 6–17 July", "hw3"],
-    ["HW4: 29 July–5 August", "hw4"],
-    ["HW5: 11–15 August", "hw5"]
+    ["HW1: 22–28 May (7d)", "hw1"],
+    ["HW2: 18–28 June (11d)", "hw2"],
+    ["HW3: 6–17 July (12d)", "hw3"],
+    ["HW4: 29 July–5 August (8d)", "hw4"],
+    ["HW5: 11–15 August (5d)", "hw5"]
   ]),
   { value: "study_period", label: "Analytical Period" }
 )
@@ -107,7 +60,7 @@ viewof period = Inputs.select(
 viewof metric = Inputs.radio(
   new Map([
     ["Rate per Million", "rate"],
-    ["Excess Deaths", "estimate"]
+    ["Excess Deaths (Count)", "estimate"]
   ]),
   { value: "rate", label: "Display Metric" }
 )
@@ -124,7 +77,7 @@ viewof geo_level = Inputs.radio(
 viewof age_group = Inputs.select(
   new Map([
     ["All Ages", "all"],
-    ["75+ Combined", "age75plus"],
+    ["75+ Combined (High Risk)", "age75plus"],
     ["0–64", "age064"],
     ["65–74", "age6574"],
     ["75–84", "age7584"],
@@ -132,25 +85,22 @@ viewof age_group = Inputs.select(
   ]),
   { value: "all", label: "Age Breakdown" }
 )
-
-mutable selected_region = "All";
-mutable selected_region_name = "England & Wales";
 ```
 
 ```{ojs}
 // Active Region Filter Status Badge & Reset Button
 {
-  const isAll = selected_region === "All";
-  const badge = isAll 
-    ? html`<div style="padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; color: #475569; margin-bottom: 8px;">
-        <i class="bi bi-globe"></i> National (England & Wales)
+  const isAll = state.region === "All";
+  const badge = isAll
+    ? html`<div style="padding: 7px 10px; background: #f8fafc; border: 1px solid #94a3b8; border-radius: 6px; font-size: 12px; color: #0f172a; font-weight: 600; margin-bottom: 8px;">
+        <i class="bi bi-globe2 me-1"></i> National (England & Wales)
       </div>`
-    : html`<div style="padding: 6px 10px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; font-size: 12px; color: #b30000; font-weight: 600; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-        <span>Region: ${selected_region_name}</span>
-        <span style="font-size: 10px; background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px;">Filtered</span>
+    : html`<div style="padding: 7px 10px; background: #fef2f2; border: 1px solid #dc2626; border-radius: 6px; font-size: 12px; color: #7a0000; font-weight: 700; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span><i class="bi bi-geo-alt-fill me-1"></i>${state.regionName}</span>
+        <span style="font-size: 10px; background: #990000; color: #ffffff; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Filtered</span>
       </div>`;
 
-  const resetBtn = Inputs.button("Reset Region Filter", {
+  const resetBtn = Inputs.button("Reset to National View", {
     reduce: () => {
       mutable selected_region = "All";
       mutable selected_region_name = "England & Wales";
@@ -158,37 +108,58 @@ mutable selected_region_name = "England & Wales";
   });
 
   return html`
-    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748b; margin-top: 14px; margin-bottom: 4px;">Geographic Filter</div>
+    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: #334155; margin-top: 12px; margin-bottom: 4px; letter-spacing: 0.04em;">Geographic Scope</div>
     ${badge}
     ${resetBtn}
-    <div style="font-size: 11px; color: #94a3b8; margin-top: 10px; line-height: 1.35;">
-      💡 Click any polygon on the map to filter the table and plots to its Region.
+    <div style="font-size: 11.5px; color: #334155; margin-top: 10px; line-height: 1.4; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #990000;">
+      <strong>Tip:</strong> Click any polygon on the map (or bar in Regional Comparison) to filter charts and table to its Region.
     </div>
   `;
 }
 ```
 
-::: {.small .text-muted .mt-3}
-Estimates derived by LSHTM from ERA5/ERA5-Land reanalyses and DLNM risk functions.
-:::
-
 ```{ojs}
-// Helpers for Map Palette, Columns and Tooltips
+//| output: false
+// Pure Formatting & Cartographic Helpers
 helpers = {
+  const periodLabelMap = {
+    study_period: "Full Season (1 May–30 Sep 2026)",
+    hw1: "Heatwave 1 (22–28 May)",
+    hw2: "Heatwave 2 (18–28 June)",
+    hw3: "Heatwave 3 (6–17 July)",
+    hw4: "Heatwave 4 (29 July–5 August)",
+    hw5: "Heatwave 5 (11–15 August)"
+  };
+
+  const ageLabelMap = {
+    all: "All Ages",
+    age75plus: "75+ Combined",
+    age064: "0–64 years",
+    age6574: "65–74 years",
+    age7584: "75–84 years",
+    age85plus: "85+ years"
+  };
+
+  const fmtInt = (x) => (x == null || isNaN(x)) ? "—" : Math.round(Number(x)).toLocaleString("en-GB");
+  const fmtRate = (x, digits = 1) => (x == null || isNaN(x))
+    ? "—"
+    : Number(x).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
   function getMapPalette(lvl, m, p) {
-    const stops = ["#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"];
+    // High-contrast ColorBrewer YlOrRd / OrRd 5-class sequential stops
+    const stops = ["#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#990000"];
     let values, title;
     if (m === "rate") {
-      values = [0, 25, 60, 120, 200];
-      title = "Deaths per Million";
+      values = (p === "study_period") ? [0, 35, 70, 110, 150] : [0, 8, 18, 30, 45];
+      title = "Excess Deaths per Million";
     } else {
-      title = "Excess Deaths";
+      title = "Excess Deaths (Count)";
       if (lvl === "lsoa") {
-        values = (p === "study_period") ? [0, 0.2, 0.6, 1.5, 3.0] : [0, 0.05, 0.15, 0.4, 1.0];
+        values = (p === "study_period") ? [0, 0.15, 0.4, 0.8, 1.5] : [0, 0.05, 0.12, 0.25, 0.5];
       } else if (lvl === "lad") {
-        values = (p === "study_period") ? [0, 5, 15, 30, 60] : [0, 2, 6, 12, 25];
+        values = (p === "study_period") ? [0, 5, 15, 30, 55] : [0, 1.5, 4, 8, 15];
       } else {
-        values = (p === "study_period") ? [0, 100, 300, 700, 1200] : [0, 25, 75, 150, 300];
+        values = (p === "study_period") ? [0, 150, 400, 700, 1000] : [0, 30, 80, 160, 260];
       }
     }
     return { values, stops, title };
@@ -196,86 +167,14 @@ helpers = {
 
   function getActiveCol(lvl, m, p) {
     const prefix = (m === "rate") ? "rate_" : "estimate_";
-    let suffix = p;
-    if (lvl === "lsoa") {
-      suffix = (p === "study_period") ? "total_hw" : p;
-    } else if (lvl === "lad") {
-      suffix = (p === "study_period") ? "study_period" : p;
-    }
+    const suffix = (lvl === "lsoa" && p === "study_period") ? "total_hw" : p;
     return prefix + suffix;
   }
 
-  const periodLabelMap = {
-    "study_period": "1 May–30 September 2026",
-    "hw1": "Heatwave 1 (22–28 May)",
-    "hw2": "Heatwave 2 (18–28 June)",
-    "hw3": "Heatwave 3 (6–17 July)",
-    "hw4": "Heatwave 4 (29 July–5 August)",
-    "hw5": "Heatwave 5 (11–15 August)"
-  };
-
-  const fmtInt = (x) => (x == null || isNaN(x)) ? "—" : Math.round(x).toLocaleString("en-GB");
-  const fmtRate = (x, digits = 1) => (x == null || isNaN(x)) ? "—" : Number(x).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-
-  function formatTooltip(lyr, props, p) {
-    const lbl = periodLabelMap[p] || p;
-    if (lyr === "region_layer") {
-      return `
-        <div><strong>${props.rgn11nm || "Region"}</strong> <span style="color:#64748b;">(${props.rgn11cd})</span></div>
-        <div style="margin-top: 4px;">Excess Deaths: <b>${fmtInt(props[`estimate_${p}`])}</b> <span style="font-size:11px;color:#64748b;">[95% eCI: ${fmtInt(props[`lower_${p}`])} – ${fmtInt(props[`upper_${p}`])}]</span></div>
-        <div>Rate per Million: <b>${fmtRate(props[`rate_${p}`], 1)}</b> <span style="font-size:11px;color:#64748b;">[95% eCI: ${fmtRate(props[`ratelow_${p}`], 1)} – ${fmtRate(props[`ratehigh_${p}`], 1)}]</span></div>
-        <div style="font-size:10px; color:#94a3b8; margin-top:3px;">${lbl}</div>
-      `;
-    } else if (lyr === "lad_layer") {
-      const estCol = (p === "study_period") ? "estimate_study_period" : `estimate_${p}`;
-      const rateCol = (p === "study_period") ? "rate_study_period" : `rate_${p}`;
-      return `
-        <div><strong>${props.lad11nm || "Local Authority"}</strong> <span style="color:#64748b;">(${props.lad11cd})</span></div>
-        <div style="font-size:11px; color:#64748b;">Region: ${props.rgn11nm || "—"}</div>
-        <div style="margin-top: 3px;">Excess Deaths: <b>${fmtRate(props[estCol], 1)}</b></div>
-        <div>Rate per Million: <b>${fmtRate(props[rateCol], 1)}</b></div>
-        <div style="font-size:10px; color:#94a3b8; margin-top:3px;">${lbl}</div>
-      `;
-    } else {
-      const estCol = (p === "study_period") ? "estimate_total_hw" : `estimate_${p}`;
-      const rateCol = (p === "study_period") ? "rate_total_hw" : `rate_${p}`;
-      return `
-        <div><strong>${props.lsoa11nm || props.lsoa11cd}</strong> <span style="color:#64748b;">(${props.lsoa11cd})</span></div>
-        <div style="font-size:11px; color:#64748b;">${props.lad11nm || "—"} | ${props.rgn11nm || "—"}</div>
-        <div style="margin-top: 3px;">Excess Deaths: <b>${fmtRate(props[estCol], 2)}</b></div>
-        <div>Rate per Million: <b>${fmtRate(props[rateCol], 1)}</b></div>
-        <div style="font-size:10px; color:#94a3b8; margin-top:3px;">${lbl}</div>
-      `;
-    }
-  }
-
-  return { getMapPalette, getActiveCol, formatTooltip, period: "study_period" };
-}
-```
-
-```{ojs}
-// Reactive Map Layer & Style Updates
-{
-  const m = map;
-  const lvl = geo_level;
-  const p = period;
-  const met = metric;
-  const rgn = selected_region;
-
-  helpers.period = p;
-
-  if (m && m.isStyleLoaded && m.isStyleLoaded()) {
-    const layers = ["region_layer", "lad_layer", "lsoa_layer"];
-    const targetLayer = `${lvl}_layer`;
-    for (const lyr of layers) {
-      if (m.getLayer(lyr)) {
-        m.setLayoutProperty(lyr, "visibility", (lyr === targetLayer) ? "visible" : "none");
-      }
-    }
-
-    const pal = helpers.getMapPalette(lvl, met, p);
-    const colName = helpers.getActiveCol(lvl, met, p);
-    const expr = [
+  function buildFillExpr(lvl, m, p) {
+    const pal = getMapPalette(lvl, m, p);
+    const colName = getActiveCol(lvl, m, p);
+    return [
       "interpolate", ["linear"], ["coalesce", ["get", colName], 0],
       pal.values[0], pal.stops[0],
       pal.values[1], pal.stops[1],
@@ -283,28 +182,276 @@ helpers = {
       pal.values[3], pal.stops[3],
       pal.values[4], pal.stops[4]
     ];
+  }
 
-    if (m.getLayer(targetLayer)) {
-      m.setPaintProperty(targetLayer, "fill-color", expr);
-    }
-
-    if (m.getLayer("region_highlight_layer")) {
-      const filter = (rgn === "All") ? ["==", "rgn11cd", ""] : ["==", "rgn11cd", rgn];
-      m.setFilter("region_highlight_layer", filter);
+  function formatTooltip(lyr, props, p) {
+    const lbl = periodLabelMap[p] || p;
+    if (lyr === "region_layer") {
+      return `
+        <div style="font-weight:700; font-size:13.5px; color:#0f172a;">${props.rgn11nm || "Region"} <span style="font-weight:500; color:#475569;">(${props.rgn11cd})</span></div>
+        <div style="margin-top:4px; font-size:12px;">Excess Deaths: <strong>${fmtInt(props[`estimate_${p}`])}</strong> <span style="color:#334155;">[95% eCI: ${fmtInt(props[`lower_${p}`])} – ${fmtInt(props[`upper_${p}`])}]</span></div>
+        <div style="font-size:12px;">Rate / Million: <strong>${fmtRate(props[`rate_${p}`], 1)}</strong> <span style="color:#334155;">[95% eCI: ${fmtRate(props[`ratelow_${p}`], 1)} – ${fmtRate(props[`ratehigh_${p}`], 1)}]</span></div>
+        <div style="font-size:11px; color:#475569; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">${lbl} · All Ages</div>
+      `;
+    } else if (lyr === "lad_layer") {
+      const estCol = `estimate_${p}`;
+      const rateCol = `rate_${p}`;
+      return `
+        <div style="font-weight:700; font-size:13.5px; color:#0f172a;">${props.lad11nm || "Local Authority"} <span style="font-weight:500; color:#475569;">(${props.lad11cd})</span></div>
+        <div style="font-size:11.5px; color:#334155; margin-bottom:3px;">Region: <strong>${props.rgn11nm || "—"}</strong> · Pop: ${fmtInt(props.population)}</div>
+        <div style="font-size:12px;">Excess Deaths: <strong>${fmtRate(props[estCol], 1)}</strong></div>
+        <div style="font-size:12px;">Rate / Million: <strong>${fmtRate(props[rateCol], 1)}</strong></div>
+        <div style="font-size:11px; color:#475569; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">${lbl} · All Ages (Click to filter Region)</div>
+      `;
+    } else {
+      const suffix = (p === "study_period") ? "total_hw" : p;
+      return `
+        <div style="font-weight:700; font-size:13px; color:#0f172a;">${props.lsoa11nm || props.lsoa11cd}</div>
+        <div style="font-size:11.5px; color:#334155; margin-bottom:3px;">${props.lad11nm || "—"} · <strong>${props.rgn11nm || "—"}</strong></div>
+        <div style="font-size:12px;">Excess Deaths: <strong>${fmtRate(props[`estimate_${suffix}`], 2)}</strong></div>
+        <div style="font-size:12px;">Rate / Million: <strong>${fmtRate(props[`rate_${suffix}`], 1)}</strong></div>
+        <div style="font-size:11px; color:#475569; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">${p === "study_period" ? "Cumulative HW1–HW5 Total" : lbl} · All Ages</div>
+      `;
     }
   }
 
-  // Update Legend
+  // Shared lookup state for MapLibre imperative event listeners
+  const activeMapState = { period: "study_period", metric: "rate", geo_level: "region" };
+
+  return {
+    periodLabelMap,
+    ageLabelMap,
+    fmtInt,
+    fmtRate,
+    getMapPalette,
+    getActiveCol,
+    buildFillExpr,
+    formatTooltip,
+    activeMapState
+  };
+}
+```
+
+## Column {width="50%"}
+
+### Spatial Heat Mortality Distribution
+
+```{ojs}
+// WebGL Choropleth Map with On-Demand Lazy Loading of Heavy Geometries
+viewof map = {
+  const container = html`
+    <div style="height: 100%; min-height: 680px; width: 100%; position: relative;">
+      <div id="map-viewport"></div>
+      <div id="map-guardrail" class="map-guardrail"></div>
+      <div id="map-legend" class="map-legend"></div>
+      <div id="map-spinner" style="position: absolute; inset: 0; background: rgba(255,255,255,0.88); display: flex; align-items: center; justify-content: center; z-index: 80;">
+        <div style="text-align: center; font-family: var(--font-primary); padding: 16px 24px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+          <div id="map-spinner-title" style="font-size: 0.95rem; font-weight: 700; color: #990000; margin-bottom: 4px;">Loading Regional Boundaries...</div>
+          <div style="font-size: 0.8rem; color: #334155;">England & Wales Heatwave Mortality Model (EPSG:4326)</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const mapDiv = container.querySelector("#map-viewport");
+  const spinner = container.querySelector("#map-spinner");
+  const spinnerTitle = container.querySelector("#map-spinner-title");
+
+  const m = new maplibregl.Map({
+    container: mapDiv,
+    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    bounds: [[-5.8, 50.0], [1.9, 55.85]],
+    fitBoundsOptions: { padding: 20 }
+  });
+
+  m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+
+  const popup = new maplibregl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: "300px"
+  });
+
+  function bindLayerInteractions(lyr) {
+    m.on("mousemove", lyr, (e) => {
+      if (!e.features || !e.features.length) return;
+      m.getCanvas().style.cursor = "pointer";
+      const props = e.features[0].properties;
+      const htmlContent = helpers.formatTooltip(lyr, props, helpers.activeMapState.period);
+      popup.setLngLat(e.lngLat).setHTML(htmlContent).addTo(m);
+    });
+
+    m.on("mouseleave", lyr, () => {
+      m.getCanvas().style.cursor = "";
+      popup.remove();
+    });
+
+    m.on("click", lyr, (e) => {
+      if (!e.features || !e.features.length) return;
+      const props = e.features[0].properties;
+      if (props.rgn11cd) {
+        mutable selected_region = props.rgn11cd;
+        mutable selected_region_name = props.rgn11nm || props.rgn11cd;
+      }
+    });
+  }
+
+  // Lazy-load LAD (0.90 MB) and LSOA (25.2 MB) sources only when requested
+  const loadedTiers = new Set(["region"]);
+  m._ensureTierLoaded = (lvl, fillExpr) => {
+    if (loadedTiers.has(lvl)) return;
+    loadedTiers.add(lvl);
+
+    const isLsoa = (lvl === "lsoa");
+    spinnerTitle.textContent = isLsoa
+      ? "Loading 34,753 LSOA Small-Area Polygons (25.2 MB)..."
+      : "Loading 348 Local Authority Boundaries...";
+    spinner.style.display = "flex";
+
+    const srcId = `${lvl}_src`;
+    const lyrId = `${lvl}_layer`;
+    const url = isLsoa ? "app_data/geo_lsoa.geojson" : "app_data/geo_lad.geojson";
+
+    m.addSource(srcId, { type: "geojson", data: url });
+    m.addLayer(
+      {
+        id: lyrId,
+        type: "fill",
+        source: srcId,
+        layout: { visibility: (helpers.activeMapState.geo_level === lvl) ? "visible" : "none" },
+        paint: {
+          "fill-color": fillExpr,
+          "fill-opacity": isLsoa ? 0.86 : 0.82,
+          "fill-outline-color": isLsoa ? "rgba(15, 23, 42, 0.12)" : "#475569"
+        }
+      },
+      "region_highlight_casing"
+    );
+
+    bindLayerInteractions(lyrId);
+    m.once("idle", () => {
+      spinner.style.display = "none";
+    });
+  };
+
+  m.on("load", () => {
+    // Load only the lightweight 240 KB region layer on initial startup
+    m.addSource("region_src", { type: "geojson", data: "app_data/geo_region.geojson" });
+
+    const initExpr = helpers.buildFillExpr("region", "rate", "study_period");
+
+    m.addLayer({
+      id: "region_layer",
+      type: "fill",
+      source: "region_src",
+      layout: { visibility: "visible" },
+      paint: {
+        "fill-color": initExpr,
+        "fill-opacity": 0.82,
+        "fill-outline-color": "#1e293b"
+      }
+    });
+
+    // High-contrast dual-stroke highlight casing so selected region is visible over dark red polygons
+    m.addLayer({
+      id: "region_highlight_casing",
+      type: "line",
+      source: "region_src",
+      paint: { "line-color": "#ffffff", "line-width": 4.5, "line-opacity": 0.95 },
+      filter: ["==", "rgn11cd", ""]
+    });
+
+    m.addLayer({
+      id: "region_highlight_layer",
+      type: "line",
+      source: "region_src",
+      paint: { "line-color": "#0f172a", "line-width": 2.5, "line-opacity": 1.0 },
+      filter: ["==", "rgn11cd", ""]
+    });
+
+    bindLayerInteractions("region_layer");
+
+    spinner.style.display = "none";
+    container.value = m;
+    container.dispatchEvent(new CustomEvent("input"));
+    setTimeout(() => m.resize(), 100);
+  });
+
+  const onResize = () => m.resize();
+  window.addEventListener("resize", onResize);
+  invalidation.then(() => {
+    window.removeEventListener("resize", onResize);
+    m.remove();
+  });
+
+  return container;
+}
+```
+
+```{ojs}
+//| output: false
+// Synchronize Map Layers, Paint Expressions, Guardrails, and Legend with Reactive State
+{
+  const m = map;
+  const { geo_level: lvl, period: p, metric: met, age_group: age, region: rgn } = state;
+
+  helpers.activeMapState.period = p;
+  helpers.activeMapState.metric = met;
+  helpers.activeMapState.geo_level = lvl;
+
+  const fillExpr = helpers.buildFillExpr(lvl, met, p);
+
+  if (m && m.getLayer("region_layer")) {
+    // Trigger lazy load if user selected LAD or LSOA for the first time
+    if (lvl !== "region" && m._ensureTierLoaded) {
+      m._ensureTierLoaded(lvl, fillExpr);
+    }
+
+    const targetLayer = `${lvl}_layer`;
+    for (const lyr of ["region_layer", "lad_layer", "lsoa_layer"]) {
+      if (m.getLayer(lyr)) {
+        m.setLayoutProperty(lyr, "visibility", (lyr === targetLayer) ? "visible" : "none");
+      }
+    }
+
+    if (m.getLayer(targetLayer)) {
+      m.setPaintProperty(targetLayer, "fill-color", fillExpr);
+    }
+
+    const hlFilter = (rgn === "All") ? ["==", "rgn11cd", ""] : ["==", "rgn11cd", rgn];
+    if (m.getLayer("region_highlight_casing")) m.setFilter("region_highlight_casing", hlFilter);
+    if (m.getLayer("region_highlight_layer")) m.setFilter("region_highlight_layer", hlFilter);
+  }
+
+  // Update Floating Granularity Guardrail Banner
+  const guardrailEl = document.getElementById("map-guardrail");
+  if (guardrailEl) {
+    const notes = [];
+    if (age !== "all" && lvl !== "region") {
+      notes.push(`<strong>Age Granularity Notice:</strong> ${lvl.toUpperCase()} map displays <strong>All-Ages</strong> point estimates. Selected age group (${helpers.ageLabelMap[age]}) is applied in charts and table.`);
+    }
+    if (lvl === "lsoa") {
+      notes.push(`<strong>Small-Area Methodology:</strong> LSOA values are non-negative truncated point estimates${p === "study_period" ? " (cumulative sum across HW1–HW5)" : ""}; 95% eCIs are estimated at Regional & National scales.`);
+    } else if (lvl === "lad" && p !== "study_period") {
+      notes.push(`<strong>LAD Heatwave Aggregation:</strong> LAD heatwave values are summed from LSOA point estimates; full-season LAD totals derive from the study period model.`);
+    }
+    guardrailEl.innerHTML = notes.map(n => `<div class="guardrail-pill">${n}</div>`).join("");
+  }
+
+  // Update Floating Glassmorphic Legend
   const pal = helpers.getMapPalette(lvl, met, p);
-  const gradStops = pal.stops.map((c, i) => `${c} ${Math.round(i / (pal.stops.length - 1) * 100)}%`).join(", ");
+  const gradStops = pal.stops.map((c, i) => `${c} ${Math.round((i / (pal.stops.length - 1)) * 100)}%`).join(", ");
   const legendEl = document.getElementById("map-legend");
   if (legendEl) {
     legendEl.innerHTML = `
-      <div style="font-weight: 700; color: #0f172a; margin-bottom: 4px;">${pal.title}</div>
-      <div style="height: 12px; border-radius: 3px; background: linear-gradient(to right, ${gradStops}); border: 1px solid rgba(0,0,0,0.15);"></div>
-      <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 11px; font-weight: 600; margin-top: 3px;">
+      <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">${pal.title}</div>
+      <div style="font-size: 10.5px; color: #334155; margin-bottom: 5px;">${helpers.periodLabelMap[p]}</div>
+      <div style="height: 12px; border-radius: 3px; background: linear-gradient(to right, ${gradStops}); border: 1px solid #475569;"></div>
+      <div style="display: flex; justify-content: space-between; color: #0f172a; font-size: 11px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums;">
         <span>${pal.values[0]}</span>
+        <span>${pal.values[1]}</span>
         <span>${pal.values[2]}</span>
+        <span>${pal.values[3]}</span>
         <span>${pal.values[4]}+</span>
       </div>
     `;
@@ -314,202 +461,382 @@ helpers = {
 
 ## Column {width="50%"}
 
-### Interactive Choropleth Map
+### Impact Visualisations {.tabset height="52%"}
+
+#### Daily Time Series
 
 ```{ojs}
-// Map Container Component (Single Child Element)
-viewof map = {
-  const container = html`
-    <div style="height: 100%; min-height: 720px; width: 100%; position: relative;">
-      <div id="map-viewport" style="width: 100%; height: 100%;"></div>
-      <div id="map-legend" class="map-legend"></div>
-      <div id="map-spinner" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center; z-index: 100;">
-        <div style="text-align: center; font-family: system-ui, sans-serif;">
-          <div style="font-size: 1.1rem; font-weight: 600; color: #b30000; margin-bottom: 6px;">Loading Vector Geometries...</div>
-          <div style="font-size: 0.85rem; color: #64748b;">England & Wales Heatwave Mortality Model</div>
-        </div>
+// 1. Daily Time Series & ERA5 Mean Temperature (Supports all 6 Age Groups & Both Metrics)
+{
+  const { period: p, metric: m, age_group: age, region: rgn, regionName } = state;
+
+  const wrapper = html`
+    <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
+        <span><strong>National Daily Trajectory</strong> (${helpers.ageLabelMap[age]}) · Shaded bands mark HW1–HW5</span>
+        <span style="font-weight: 700; color: #990000;">${p === "study_period" ? "Full Summer (153 days)" : `Zoomed to ${p.toUpperCase()}`}</span>
       </div>
+      <div class="plot-host" style="flex: 1; min-height: 270px; width: 100%;"></div>
     </div>
   `;
+  const plotEl = wrapper.querySelector(".plot-host");
+  if (!window.Plotly) return wrapper;
 
-  yield container;
+  const d = daily_data.filter(x => x.agegr === age);
 
-  const mapDiv = container.querySelector("#map-viewport");
-  const spinner = container.querySelector("#map-spinner");
+  const hwWindows = {
+    hw1: ["2026-05-22", "2026-05-28"],
+    hw2: ["2026-06-18", "2026-06-28"],
+    hw3: ["2026-07-06", "2026-07-17"],
+    hw4: ["2026-07-29", "2026-08-05"],
+    hw5: ["2026-08-11", "2026-08-15"]
+  };
 
-  const m = new maplibregl.Map({
-    container: mapDiv,
-    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-    bounds: [[-5.8, 50.0], [1.8, 55.8]],
-    fitBoundsOptions: { padding: 25 }
+  const shapes = Object.entries(hwWindows).map(([hw, bounds]) => {
+    const isActive = (p === hw);
+    return {
+      type: "rect",
+      fillcolor: isActive ? "rgba(153, 0, 0, 0.22)" : "rgba(153, 0, 0, 0.08)",
+      line: { color: isActive ? "#990000" : "rgba(153, 0, 0, 0.25)", width: isActive ? 1.5 : 1 },
+      x0: bounds[0], x1: bounds[1], xref: "x", y0: 0, y1: 1, yref: "paper"
+    };
   });
 
-  m.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+  let xRange = ["2026-05-01", "2026-09-30"];
+  if (hwWindows[p]) {
+    const [b0, b1] = hwWindows[p];
+    const d0 = new Date(`${b0}T00:00:00Z`); d0.setUTCDate(d0.getUTCDate() - 4);
+    const d1 = new Date(`${b1}T00:00:00Z`); d1.setUTCDate(d1.getUTCDate() + 4);
+    xRange = [d0.toISOString().slice(0, 10), d1.toISOString().slice(0, 10)];
+  }
 
-  const popup = new maplibregl.Popup({
-    closeButton: false,
-    closeOnClick: false,
-    className: "map-tooltip-popup"
+  const isRate = (m === "rate");
+  const yVals = d.map(x => isRate ? x.rate : x.estimate);
+  const yTitle = isRate ? "Daily Rate / 1M" : "Daily Excess Deaths";
+
+  const hoverText = d.map(x => {
+    const hasCi = x.lower != null && !isNaN(x.lower);
+    const estStr = hasCi
+      ? `${helpers.fmtInt(x.estimate)} [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]`
+      : `${helpers.fmtInt(x.estimate)}`;
+    const rateStr = hasCi
+      ? `${helpers.fmtRate(x.rate, 2)} [95% eCI: ${helpers.fmtRate(x.ratelow, 2)} – ${helpers.fmtRate(x.ratehigh, 2)}]`
+      : `${helpers.fmtRate(x.rate, 2)}`;
+    return `<b>${x.dateStr}</b> (${helpers.ageLabelMap[age]})<br>Excess Deaths: <b>${estStr}</b><br>Rate / 1M: <b>${rateStr}</b><br>ERA5 Mean Temp: <b>${helpers.fmtRate(x.meantemp, 1)} °C</b>`;
   });
 
-  m.on("load", () => {
-    m.addSource("region_src", { type: "geojson", data: "app_data/geo_region.geojson" });
-    m.addSource("lad_src",    { type: "geojson", data: "app_data/geo_lad.geojson" });
-    m.addSource("lsoa_src",   { type: "geojson", data: "app_data/geo_lsoa.geojson" });
+  const traceBars = {
+    x: d.map(x => x.dateStr),
+    y: yVals,
+    type: "bar",
+    name: isRate ? "Excess Rate / 1M" : "Excess Deaths",
+    marker: { color: "#990000", opacity: 0.88 },
+    hoverinfo: "text",
+    text: hoverText,
+    textposition: "none",
+    yaxis: "y"
+  };
 
-    const initPal = helpers.getMapPalette("region", "rate", "study_period");
-    const initExpr = [
-      "interpolate", ["linear"], ["coalesce", ["get", "rate_study_period"], 0],
-      initPal.values[0], initPal.stops[0],
-      initPal.values[1], initPal.stops[1],
-      initPal.values[2], initPal.stops[2],
-      initPal.values[3], initPal.stops[3],
-      initPal.values[4], initPal.stops[4]
-    ];
+  const traceLine = {
+    x: d.map(x => x.dateStr),
+    y: d.map(x => x.meantemp),
+    type: "scatter",
+    mode: "lines",
+    name: "ERA5 Mean Temp (°C)",
+    line: { color: "#0f172a", width: 2 },
+    hoverinfo: "skip",
+    yaxis: "y2"
+  };
 
-    m.addLayer({
-      id: "region_layer",
-      type: "fill",
-      source: "region_src",
-      layout: { visibility: "visible" },
-      paint: { "fill-color": initExpr, "fill-opacity": 0.78, "fill-outline-color": "#1e293b" }
-    });
+  const layout = {
+    font: { family: "Inter, system-ui, sans-serif", color: "#0f172a", size: 11 },
+    shapes,
+    xaxis: { title: "", range: xRange, showgrid: false, tickfont: { color: "#334155" } },
+    yaxis: { title: yTitle, zeroline: true, zerolinecolor: "#94a3b8", gridcolor: "#e2e8f0", automargin: true },
+    yaxis2: { title: "Mean Temp (°C)", overlaying: "y", side: "right", showgrid: false, automargin: true },
+    legend: { orientation: "h", x: 0.5, xanchor: "center", y: 1.14, font: { size: 11 } },
+    margin: { t: 24, r: 42, b: 28, l: 48 },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
 
-    m.addLayer({
-      id: "lad_layer",
-      type: "fill",
-      source: "lad_src",
-      layout: { visibility: "none" },
-      paint: { "fill-color": initExpr, "fill-opacity": 0.78, "fill-outline-color": "#64748b" }
-    });
-
-    m.addLayer({
-      id: "lsoa_layer",
-      type: "fill",
-      source: "lsoa_src",
-      layout: { visibility: "none" },
-      paint: { "fill-color": initExpr, "fill-opacity": 0.82 }
-    });
-
-    m.addLayer({
-      id: "region_highlight_layer",
-      type: "line",
-      source: "region_src",
-      paint: { "line-color": "#b30000", "line-width": 3, "line-opacity": 0.95 },
-      filter: ["==", "rgn11cd", ""]
-    });
-
-    for (const lyr of ["region_layer", "lad_layer", "lsoa_layer"]) {
-      m.on("mousemove", lyr, (e) => {
-        if (!e.features || !e.features.length) return;
-        m.getCanvas().style.cursor = "pointer";
-        const props = e.features[0].properties;
-        const htmlContent = helpers.formatTooltip(lyr, props, helpers.period);
-        popup.setLngLat(e.lngLat).setHTML(htmlContent).addTo(m);
-      });
-
-      m.on("mouseleave", lyr, () => {
-        m.getCanvas().style.cursor = "";
-        popup.remove();
-      });
-
-      m.on("click", lyr, (e) => {
-        if (!e.features || !e.features.length) return;
-        const props = e.features[0].properties;
-        if (props.rgn11cd) {
-          mutable selected_region = props.rgn11cd;
-          mutable selected_region_name = props.rgn11nm || props.rgn11cd;
-        }
-      });
-    }
-
-    spinner.style.display = "none";
-    container.value = m;
-    container.dispatchEvent(new CustomEvent("input"));
-    setTimeout(() => { if (m) m.resize(); }, 150);
-  });
-
-  window.addEventListener("resize", () => { if (m) m.resize(); });
-  invalidation.then(() => m.remove());
+  Plotly.react(plotEl, [traceBars, traceLine], layout, { responsive: true, displayModeBar: false });
+  return wrapper;
 }
 ```
 
-## Column {width="50%"}
+#### Regional Comparison
+
+```{ojs}
+// 2. Regional Ranking with 95% eCIs, National Benchmark Line & Interactive Click-to-Filter
+{
+  const { period: p, metric: m, age_group: targetAge, region: rgn, regionName } = state;
+
+  const wrapper = html`
+    <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
+        <span><strong>10 ONS Regions</strong> (${helpers.ageLabelMap[targetAge]}) · Error bars = 95% eCI</span>
+        <span style="font-weight: 700; color: #990000;">${rgn === "All" ? "All Regions Active" : `Highlighted: ${regionName}`}</span>
+      </div>
+      <div class="plot-host" style="flex: 1; min-height: 270px; width: 100%;"></div>
+    </div>
+  `;
+  const plotEl = wrapper.querySelector(".plot-host");
+  if (!window.Plotly) return wrapper;
+
+  const isRate = (m === "rate");
+  const d = summary_data
+    .filter(x => x.geo_level === "region" && x.period === p && x.agegr === targetAge)
+    .slice()
+    .sort((a, b) => isRate ? a.rate - b.rate : a.estimate - b.estimate);
+
+  const natRow = summary_data.find(x => x.geo_level === "national" && x.period === p && x.agegr === targetAge);
+
+  const xVal = d.map(x => isRate ? x.rate : x.estimate);
+  const arrMax = d.map(x => isRate ? (x.ratehigh - x.rate) : (x.upper - x.estimate));
+  const arrMin = d.map(x => isRate ? (x.rate - x.ratelow) : (x.estimate - x.lower));
+  const barColors = d.map(x => (rgn === "All" || x.rgn11cd === rgn) ? "#990000" : "#94a3b8");
+
+  const hoverText = d.map(x =>
+    `<b>${x.rgn11nm}</b> (${helpers.ageLabelMap[targetAge]})<br>` +
+    `Rate / 1M: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
+    `Excess Deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]`
+  );
+
+  const trace = {
+    y: d.map(x => x.rgn11nm),
+    x: xVal,
+    customdata: d.map(x => {
+      return { code: x.rgn11cd, name: x.rgn11nm };
+    }),
+    type: "bar",
+    orientation: "h",
+    marker: { color: barColors, line: { color: "#1e293b", width: 0.75 } },
+    error_x: { type: "data", symmetric: false, array: arrMax, arrayminus: arrMin, color: "#0f172a", thickness: 1.4, width: 3 },
+    hoverinfo: "text",
+    text: hoverText,
+    textposition: "none"
+  };
+
+  // Add National Rate Benchmark Line when viewing Rates
+  const shapes = [];
+  const annotations = [];
+  if (isRate && natRow && natRow.rate != null) {
+    shapes.push({
+      type: "line",
+      x0: natRow.rate, x1: natRow.rate, xref: "x",
+      y0: 0, y1: 1, yref: "paper",
+      line: { color: "#0f172a", width: 1.5, dash: "dash" }
+    });
+    annotations.push({
+      x: natRow.rate, y: 1.04, xref: "x", yref: "paper",
+      text: `E&W Rate: ${helpers.fmtRate(natRow.rate, 1)}/M`,
+      showarrow: false,
+      font: { size: 10.5, color: "#0f172a", weight: "bold" }
+    });
+  }
+
+  const layout = {
+    font: { family: "Inter, system-ui, sans-serif", color: "#0f172a", size: 11 },
+    shapes,
+    annotations,
+    xaxis: { title: isRate ? "Excess Deaths per Million (with 95% eCI)" : "Excess Deaths (with 95% eCI)", gridcolor: "#e2e8f0", automargin: true },
+    yaxis: { title: "", automargin: true, tickfont: { color: "#0f172a" } },
+    margin: { l: 135, r: 20, t: 18, b: 32 },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.react(plotEl, [trace], layout, { responsive: true, displayModeBar: false });
+
+  plotEl.on("plotly_click", (ev) => {
+    const pt = ev?.points?.[0]?.customdata;
+    if (pt && pt.code) {
+      mutable selected_region = pt.code;
+      mutable selected_region_name = pt.name;
+    }
+  });
+
+  return wrapper;
+}
+```
+
+#### Age Gradient
+
+```{ojs}
+// 3. Demographic Vulnerability Gradient with 95% eCIs
+{
+  const { period: p, metric: m, region: rgn, regionName } = state;
+
+  const wrapper = html`
+    <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
+        <span><strong>Demographic Gradient</strong> · Steep age-related risk escalation</span>
+        <span style="font-weight: 700; color: #990000;">Scope: ${rgn === "All" ? "England & Wales" : regionName}</span>
+      </div>
+      <div class="plot-host" style="flex: 1; min-height: 270px; width: 100%;"></div>
+    </div>
+  `;
+  const plotEl = wrapper.querySelector(".plot-host");
+  if (!window.Plotly) return wrapper;
+
+  const ageKeys = ["age064", "age6574", "age7584", "age85plus"];
+  const d = summary_data
+    .filter(x =>
+      (rgn === "All" ? x.geo_level === "national" : (x.geo_level === "region" && x.rgn11cd === rgn)) &&
+      x.period === p &&
+      ageKeys.includes(x.agegr)
+    )
+    .slice()
+    .sort((a, b) => ageKeys.indexOf(a.agegr) - ageKeys.indexOf(b.agegr));
+
+  const isRate = (m === "rate");
+  const yVal = d.map(x => isRate ? x.rate : x.estimate);
+  const arrMax = d.map(x => isRate ? (x.ratehigh - x.rate) : (x.upper - x.estimate));
+  const arrMin = d.map(x => isRate ? (x.rate - x.ratelow) : (x.estimate - x.lower));
+
+  const hoverText = d.map(x =>
+    `<b>Age ${x.age}</b> (${rgn === "All" ? "England & Wales" : regionName})<br>` +
+    `Rate / 1M: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
+    `Excess Deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]<br>` +
+    `Population: ${helpers.fmtInt(x.population)}`
+  );
+
+  const trace = {
+    x: d.map(x => x.age),
+    y: yVal,
+    type: "bar",
+    marker: {
+      color: ["#fdcc8a", "#fc8d59", "#e34a33", "#990000"],
+      line: { color: "#0f172a", width: 1 }
+    },
+    error_y: { type: "data", symmetric: false, array: arrMax, arrayminus: arrMin, color: "#0f172a", thickness: 1.5, width: 4 },
+    hoverinfo: "text",
+    text: hoverText,
+    textposition: "none"
+  };
+
+  const layout = {
+    font: { family: "Inter, system-ui, sans-serif", color: "#0f172a", size: 11 },
+    xaxis: { title: "Age Group (Years)", automargin: true, tickfont: { color: "#0f172a" } },
+    yaxis: { title: isRate ? "Excess Deaths per Million" : "Excess Deaths (Count)", gridcolor: "#e2e8f0", automargin: true },
+    margin: { t: 15, r: 20, b: 32, l: 55 },
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "rgba(0,0,0,0)"
+  };
+
+  Plotly.react(plotEl, [trace], layout, { responsive: true, displayModeBar: false });
+  return wrapper;
+}
+```
+
+#### Methods & Findings
+
+::: {.p-3 .bg-white .border .rounded .small}
+**Public Health Notice:**  
+Figures presented are **modelled statistical estimates of heat-related excess mortality** derived by LSHTM from historical temperature–mortality relationships (distributed lag non-linear models, lags 0–21 days) and ECMWF ERA5/ERA5-Land reanalysis temperatures across 34,753 LSOAs—*not* counts from registered death certificates.
+
+**Key Epidemiological Findings (1 May – 30 September 2026):**
+* **Total Burden:** **5,827 excess deaths** (95% eCI: 4,349–6,897) across England & Wales (**97.6 per million**).
+* **Episodic Concentration:** **91.4%** of total summer heat mortality (5,325 deaths) occurred during five discrete heatwaves, peaking in **HW2 (18–28 June: 1,808 deaths)** and **HW3 (6–17 July: 1,468 deaths)**.
+* **Demographic Vulnerability:** Older adults aged **75+ accounted for 75.7%** of all heat-related deaths (4,408 deaths), despite representing 8.7% of the population.
+* **Geographic Inequality:** Excess mortality rates per million were highest in the **West Midlands (133.9)**, **South East (133.0)**, and **London (132.4)**, and lowest in the **North East (41.7)**.
+:::
 
 ### Summary Data Table {height="48%"}
 
 ```{ojs}
-// Filterable Data Table
+// Interactive Sortable Summary Table with Scope Badges, Population & CSV Export
 {
-  const p = period;
-  const sel_rgn = selected_region;
-  const targetAge = age_group;
+  const { period: p, age_group: targetAge, region: sel_rgn, regionName } = state;
+  const sortCol = table_sort_col;
+  const sortAsc = table_sort_asc;
 
-  const fmtInt = (x) => (x == null || isNaN(x)) ? "—" : Math.round(x).toLocaleString("en-GB");
-  const fmtRate = (x, digits = 1) => (x == null || isNaN(x)) ? "—" : Number(x).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-
-  let data = summary_data.filter(x => x.period === p);
+  let data = summary_data.filter(x => x.period === p && x.agegr === targetAge);
   if (sel_rgn !== "All") {
-    data = data.filter(x => x.geo_level === "region" && x.rgn11cd === sel_rgn);
+    data = data.filter(x => x.geo_level === "national" || (x.geo_level === "region" && x.rgn11cd === sel_rgn));
   }
-  if (targetAge !== "all") {
-    data = data.filter(x => x.agegr === targetAge);
-  }
+
+  data = data.slice().sort((a, b) => {
+    // Keep National benchmark row pinned at top when viewing all regions
+    if (a.geo_level !== b.geo_level) return a.geo_level === "national" ? -1 : 1;
+    const va = a[sortCol], vb = b[sortCol];
+    const cmp = (typeof va === "string") ? va.localeCompare(vb) : (va - vb);
+    return sortAsc ? cmp : -cmp;
+  });
 
   const maxEst = Math.max(...data.map(d => d.estimate || 0), 1);
   const maxRate = Math.max(...data.map(d => d.rate || 0), 1);
+
+  const setSort = (col) => () => {
+    if (table_sort_col === col) {
+      mutable table_sort_asc = !table_sort_asc;
+    } else {
+      mutable table_sort_col = col;
+      mutable table_sort_asc = (col === "rgn11nm" || col === "age");
+    }
+  };
+
+  const sortIndicator = (col) => (sortCol === col) ? (sortAsc ? " ▲" : " ▼") : "";
 
   const downloadCsv = () => {
     const headers = ["geo_level", "rgn11cd", "rgn11nm", "period", "period_label", "agegr", "age", "population", "estimate", "lower", "upper", "rate", "ratelow", "ratehigh"];
     const csvRows = data.map(row => headers.map(h => {
       let v = row[h];
-      if (typeof v === "number") v = Math.round(v * 100) / 100;
       if (typeof v === "string" && v.includes(",")) v = `"${v}"`;
       return v ?? "";
     }).join(","));
-    const csvStr = [headers.join(","), ...csvRows].join("\n");
-    const blob = new Blob([csvStr], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob([[headers.join(","), ...csvRows].join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `UK_Heatwave_2026_Summary.csv`;
+    a.download = `UK_Heatwave_2026_${p}_${targetAge}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const exportBtn = html`<button style="padding: 3px 8px; font-size: 11px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; cursor: pointer; color: #b30000; font-weight: 600;">Export CSV</button>`;
+  const exportBtn = html`<button style="padding: 3px 10px; font-size: 11px; background: #ffffff; border: 1px solid #990000; border-radius: 4px; cursor: pointer; color: #990000; font-weight: 700;">⬇ Export CSV</button>`;
   exportBtn.onclick = downloadCsv;
+
+  const thGeo = html`<th>Geography${sortIndicator("rgn11nm")}</th>`; thGeo.onclick = setSort("rgn11nm");
+  const thPop = html`<th style="text-align: right;">Population${sortIndicator("population")}</th>`; thPop.onclick = setSort("population");
+  const thEst = html`<th style="min-width: 155px;">Excess Deaths [95% eCI]${sortIndicator("estimate")}</th>`; thEst.onclick = setSort("estimate");
+  const thRate = html`<th style="min-width: 155px;">Rate / 1M [95% eCI]${sortIndicator("rate")}</th>`; thRate.onclick = setSort("rate");
 
   return html`
     <div style="display: flex; flex-direction: column; height: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <span style="font-size: 11.5px; color: #64748b; font-weight: 600;">
-          Showing <b>${data.length}</b> records (${sel_rgn === "All" ? "National & Regions" : selected_region_name})
+        <span style="font-size: 11.5px; color: #0f172a; font-weight: 600;">
+          <strong>${helpers.periodLabelMap[p]}</strong> · ${helpers.ageLabelMap[targetAge]} (${data.length} rows)
         </span>
         ${exportBtn}
       </div>
 
-      <div style="overflow-y: auto; flex: 1; border: 1px solid #e2e8f0; border-radius: 6px;">
+      <div style="overflow-y: auto; flex: 1; border: 1px solid #cbd5e1; border-radius: 6px;">
         <table class="custom-table">
           <thead>
             <tr>
-              <th>Geography</th>
-              <th>Age Group</th>
-              <th style="min-width: 140px;">Excess Deaths (95% eCI)</th>
-              <th style="min-width: 140px;">Rate / M (95% eCI)</th>
+              ${thGeo}
+              ${thPop}
+              ${thEst}
+              ${thRate}
             </tr>
           </thead>
           <tbody>
             ${data.map(r => {
+              const isNat = r.geo_level === "national";
               const estPct = Math.min(100, Math.max(0, ((r.estimate || 0) / maxEst) * 100)).toFixed(1);
               const ratePct = Math.min(100, Math.max(0, ((r.rate || 0) / maxRate) * 100)).toFixed(1);
-              const estText = `${fmtInt(r.estimate)} [${fmtInt(r.lower)} – ${fmtInt(r.upper)}]`;
-              const rateText = `${fmtRate(r.rate, 1)} [${fmtRate(r.ratelow, 1)} – ${fmtRate(r.ratehigh, 1)}]`;
+              const estText = `${helpers.fmtInt(r.estimate)} [${helpers.fmtInt(r.lower)} – ${helpers.fmtInt(r.upper)}]`;
+              const rateText = `${helpers.fmtRate(r.rate, 1)} [${helpers.fmtRate(r.ratelow, 1)} – ${helpers.fmtRate(r.ratehigh, 1)}]`;
 
-              return html`
-                <tr>
-                  <td><b>${r.rgn11nm}</b></td>
-                  <td>${r.age}</td>
+              const rowEl = html`
+                <tr class="${isNat ? "row-national" : ""}" style="cursor: pointer;" title="Click to select ${r.rgn11nm}">
+                  <td>
+                    <span class="scope-badge ${isNat ? "scope-national" : "scope-region"}">${isNat ? "NAT" : "RGN"}</span>
+                    <strong>${r.rgn11nm}</strong>
+                  </td>
+                  <td style="text-align: right; font-variant-numeric: tabular-nums;">${helpers.fmtInt(r.population)}</td>
                   <td>
                     <div class="inline-bar-bg">
                       <div class="inline-bar-fill" style="width: ${estPct}%;"></div>
@@ -524,6 +851,16 @@ viewof map = {
                   </td>
                 </tr>
               `;
+              rowEl.onclick = () => {
+                if (isNat) {
+                  mutable selected_region = "All";
+                  mutable selected_region_name = "England & Wales";
+                } else {
+                  mutable selected_region = r.rgn11cd;
+                  mutable selected_region_name = r.rgn11nm;
+                }
+              };
+              return rowEl;
             })}
           </tbody>
         </table>
@@ -532,201 +869,3 @@ viewof map = {
   `;
 }
 ```
-
-### Impact Visualisations {.tabset height="52%"}
-
-#### Daily Time Series
-
-```{ojs}
-// 1. Time Series Chart
-{
-  const p = period;
-  const age = age_group;
-  const fmtInt = (x) => (x == null || isNaN(x)) ? "—" : Math.round(x).toLocaleString("en-GB");
-
-  const container = html`<div style="width: 100%; height: 320px;"></div>`;
-  if (!window.Plotly) return container;
-
-  let d;
-  if (age === "age75plus") {
-    const mapDate = new Map();
-    const filtered = daily_data.filter(x => x.agegr === "age7584" || x.agegr === "age85plus");
-    for (const row of filtered) {
-      if (!mapDate.has(row.date)) {
-        mapDate.set(row.date, { date: row.date, estimate: 0, lower: 0, upper: 0, meantemp: row.meantemp });
-      }
-      const entry = mapDate.get(row.date);
-      entry.estimate += (row.estimate || 0);
-      entry.lower += (row.lower || 0);
-      entry.upper += (row.upper || 0);
-    }
-    d = Array.from(mapDate.values());
-  } else {
-    const targetAge = ["all", "age064", "age6574", "age7584", "age85plus"].includes(age) ? age : "all";
-    d = daily_data.filter(x => x.agegr === targetAge);
-  }
-
-  const hwWindows = {
-    hw1: ["2026-05-22", "2026-05-28"],
-    hw2: ["2026-06-18", "2026-06-28"],
-    hw3: ["2026-07-06", "2026-07-17"],
-    hw4: ["2026-07-29", "2026-08-05"],
-    hw5: ["2026-08-11", "2026-08-15"]
-  };
-
-  const shapes = Object.entries(hwWindows).map(([hw, bounds]) => {
-    const isActive = (p === hw);
-    return {
-      type: "rect",
-      fillcolor: isActive ? "rgba(179, 0, 0, 0.22)" : "rgba(220, 38, 38, 0.08)",
-      line: { color: isActive ? "#b30000" : "transparent", width: isActive ? 1.5 : 0 },
-      x0: bounds[0], x1: bounds[1], xref: "x", y0: 0, y1: 1, yref: "paper"
-    };
-  });
-
-  let xRange;
-  if (hwWindows[p]) {
-    const b = hwWindows[p];
-    const d0 = new Date(b[0]); d0.setDate(d0.getDate() - 3);
-    const d1 = new Date(b[1]); d1.setDate(d1.getDate() + 3);
-    xRange = [d0.toISOString().slice(0, 10), d1.toISOString().slice(0, 10)];
-  } else {
-    xRange = ["2026-05-01", "2026-09-30"];
-  }
-
-  const traceBars = {
-    x: d.map(x => x.date),
-    y: d.map(x => x.estimate),
-    type: "bar",
-    name: "Excess Deaths",
-    marker: { color: "#b30000", opacity: 0.85 },
-    yaxis: "y"
-  };
-
-  const traceLine = {
-    x: d.map(x => x.date),
-    y: d.map(x => x.meantemp),
-    type: "scatter",
-    mode: "lines",
-    name: "Mean Temp (°C)",
-    line: { color: "#d97706", width: 2 },
-    yaxis: "y2"
-  };
-
-  const layout = {
-    shapes: shapes,
-    xaxis: { title: "", range: xRange, showgrid: false },
-    yaxis: { title: "Daily Deaths", zeroline: true, automargin: true },
-    yaxis2: { title: "Temp (°C)", overlaying: "y", side: "right", showgrid: false, automargin: true },
-    legend: { orientation: "h", x: 0.5, xanchor: "center", y: 1.15 },
-    margin: { t: 25, r: 40, b: 35, l: 45 }
-  };
-
-  Plotly.newPlot(container, [traceBars, traceLine], layout, { responsive: true, displayModeBar: false });
-  return container;
-}
-```
-
-#### Regional Comparison
-
-```{ojs}
-// 2. Regional Comparison Chart
-{
-  const p = period;
-  const m = metric;
-  const targetAge = age_group;
-  const rgn = selected_region;
-  const fmtRate = (x, digits = 1) => (x == null || isNaN(x)) ? "—" : Number(x).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-  const fmtInt = (x) => (x == null || isNaN(x)) ? "—" : Math.round(x).toLocaleString("en-GB");
-
-  const container = html`<div style="width: 100%; height: 320px;"></div>`;
-  if (!window.Plotly) return container;
-
-  const validAge = ["all", "age75plus", "age064", "age6574", "age7584", "age85plus"].includes(targetAge) ? targetAge : "all";
-  let d = summary_data.filter(x => x.geo_level === "region" && x.period === p && x.agegr === validAge);
-
-  if (m === "rate") {
-    d.sort((a, b) => a.rate - b.rate);
-  } else {
-    d.sort((a, b) => a.estimate - b.estimate);
-  }
-
-  const xVal = (m === "rate") ? d.map(x => x.rate) : d.map(x => x.estimate);
-  const arrMax = (m === "rate") ? d.map(x => x.ratehigh - x.rate) : d.map(x => x.upper - x.estimate);
-  const arrMin = (m === "rate") ? d.map(x => x.rate - x.ratelow) : d.map(x => x.estimate - x.lower);
-  const barColors = d.map(x => (rgn === "All" || x.rgn11cd === rgn) ? "#b30000" : "#cbd5e1");
-
-  const trace = {
-    y: d.map(x => x.rgn11nm),
-    x: xVal,
-    type: "bar",
-    orientation: "h",
-    marker: { color: barColors },
-    error_x: { type: "data", symmetric: false, array: arrMax, arrayminus: arrMin, color: "#475569", thickness: 1.2 }
-  };
-
-  const layout = {
-    xaxis: { title: m === "rate" ? "Rate per Million" : "Excess Deaths", automargin: true },
-    yaxis: { title: "", automargin: true },
-    margin: { l: 120, r: 20, t: 10, b: 35 }
-  };
-
-  Plotly.newPlot(container, [trace], layout, { responsive: true, displayModeBar: false });
-  return container;
-}
-```
-
-#### Age Gradient
-
-```{ojs}
-// 3. Age Gradient Chart
-{
-  const p = period;
-  const m = metric;
-  const rgn = selected_region;
-
-  const container = html`<div style="width: 100%; height: 320px;"></div>`;
-  if (!window.Plotly) return container;
-
-  let d = (rgn === "All")
-    ? summary_data.filter(x => x.geo_level === "national" && x.period === p && ["age064", "age6574", "age7584", "age85plus"].includes(x.agegr))
-    : summary_data.filter(x => x.geo_level === "region" && x.rgn11cd === rgn && x.period === p && ["age064", "age6574", "age7584", "age85plus"].includes(x.agegr));
-
-  const ageOrder = ["0-64", "65-74", "75-84", "85 and above"];
-  d.sort((a, b) => ageOrder.indexOf(a.age) - ageOrder.indexOf(b.age));
-
-  const yVal = (m === "rate") ? d.map(x => x.rate) : d.map(x => x.estimate);
-  const arrMax = (m === "rate") ? d.map(x => x.ratehigh - x.rate) : d.map(x => x.upper - x.estimate);
-  const arrMin = (m === "rate") ? d.map(x => x.rate - x.ratelow) : d.map(x => x.estimate - x.lower);
-
-  const trace = {
-    x: d.map(x => x.age),
-    y: yVal,
-    type: "bar",
-    marker: { color: ["#fca5a5", "#f87171", "#ef4444", "#b30000"] },
-    error_y: { type: "data", symmetric: false, array: arrMax, arrayminus: arrMin, color: "#334155", thickness: 1.2 }
-  };
-
-  const layout = {
-    xaxis: { title: "Age Group", automargin: true },
-    yaxis: { title: m === "rate" ? "Rate per Million" : "Excess Deaths", automargin: true },
-    margin: { t: 15, r: 20, b: 35, l: 50 }
-  };
-
-  Plotly.newPlot(container, [trace], layout, { responsive: true, displayModeBar: false });
-  return container;
-}
-```
-
-#### About & Methods
-
-::: {.p-3 .bg-light .border .rounded .small}
-**Public Health Notice:**  
-Figures presented are modelled statistical estimates of heat-related excess mortality derived from historical temperature–mortality relationships (DLNM, lags 0–21 days) and ERA5/ERA5-Land reanalysis temperatures across 34,753 LSOAs, *not* counts from death certificates.
-
-**Key Findings:**
-* **5,827 excess deaths** (95% eCI: 4,349–6,897) across England & Wales from 1 May to 30 September 2026 (97.6 per million).
-* **Episodic concentration:** 91.4% of total heat mortality (5,325 deaths) occurred within the five discrete heatwaves (HW1–HW5).
-* **Vulnerable older adults:** Adults aged 75+ accounted for 75.7% of all excess deaths (4,408 deaths).
-* **Regional rates:** West Midlands (133.9/M), South East (133.0/M), and London (132.4/M) suffered the highest rates; North East (41.7/M) the lowest.
-:::

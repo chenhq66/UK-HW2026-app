@@ -1,11 +1,11 @@
 # UK Heatwave 2026: Excess Mortality Explorer (`UKHW2026-app`)
 
-[![R](https://img.shields.io/badge/R-%3E%3D%204.3.0-blue.svg)](https://www.r-project.org/)
-[![Shiny](https://img.shields.io/badge/Shiny-bslib-crimson.svg)](https://shiny.posit.co/)
-[![MapLibre](https://img.shields.io/badge/WebGL-mapgl-orange.svg)](https://walker-data.com/mapgl/)
+[![Quarto](https://img.shields.io/badge/Quarto-Dashboard-blue.svg)](https://quarto.org/)
+[![Observable JS](https://img.shields.io/badge/Observable-JS-orange.svg)](https://observablehq.com/)
+[![MapLibre GL](https://img.shields.io/badge/MapLibre-WebGL-crimson.svg)](https://maplibre.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-An interactive, fast, and modern **R Shiny web application** built to communicate the public health impacts of the record-breaking summer 2026 heatwaves across **England & Wales** (1 May to 30 September 2026).
+An interactive, serverless **Quarto Dashboard** powered by **Observable JS ({ojs})** and **MapLibre GL JS**, designed to communicate the public health impacts of the record-breaking summer 2026 heatwaves across **England & Wales** (1 May to 30 September 2026).
 
 Based on the small-area environmental epidemiology framework developed at the **London School of Hygiene & Tropical Medicine (LSHTM)**, linking ECMWF ERA5-Land reanalysis temperatures to age- and location-specific temperature–mortality risk functions across **34,753 Lower Layer Super Output Areas (LSOAs)**.
 
@@ -15,7 +15,7 @@ Based on the small-area environmental epidemiology framework developed at the **
 
 - **5,827 Total Excess Deaths** (95% empirical confidence interval [eCI]: 4,349–6,897) across the extended warm season (equivalent to 97.6 deaths per million population).
 - **Episodic Concentration (91.4%):** 5,325 excess deaths occurred within five discrete heatwave episodes, led by 18–28 June (1,808 deaths) and 6–17 July (1,468 deaths).
-- **Concentration in Older Adults (75.7%):** People aged 75 and older accounted for 4,408 deaths (3,367–5,334), despite representing only 8.7% of the total population.
+- **Disproportionate Impact on Older Adults (75.7%):** People aged 75 and older accounted for 4,408 deaths (3,367–5,334), despite representing only 8.7% of the total population.
 - **Record Daily Peaks:** Single-day modelled mortality peaked on 26 June (409 deaths; 306–475) and 13 August (405 deaths; 276–479).
 - **Pronounced Geographic Disparities:** Rates per million were highest in the West Midlands (133.9), South East (133.0), and London (132.4), and lowest in the North East (41.7).
 
@@ -25,132 +25,88 @@ Based on the small-area environmental epidemiology framework developed at the **
 
 ```mermaid
 flowchart TD
-    subgraph DataStore["High-Performance Data Layer (app_data/)"]
-        ParquetData["Columnar Parquet Store<br/>summary_estimates.parquet<br/>daily_series.parquet"]
-        SpatialData["Simplified WGS84 sf Cache<br/>geo_region.rds (10 features)<br/>geo_lad.rds (348 features)<br/>geo_lsoa.rds (34,753 features)"]
+    subgraph DataStore["Static High-Performance Assets (app_data/)"]
+        CSVData["Lightweight CSV Store<br/>summary_estimates.csv (48 KB)<br/>daily_series.csv (62 KB)"]
+        SpatialData["Simplified WGS84 GeoJSON Layers<br/>geo_region.geojson (0.24 MB)<br/>geo_lad.geojson (0.90 MB)<br/>geo_lsoa.geojson (25.2 MB)"]
     end
 
-    subgraph StateEngine["Application Core & Reactive State (app.R)"]
-        SidebarInputs["Sidebar Controls<br/>Period | Metric | Tier | Age"]
-        GlobalState["Shared State (reactiveValues)<br/>period, metric, geo_level, age_group, selected_region"]
-        KPICards["Reactive Value Boxes<br/>Total Excess Deaths (95% eCI)<br/>Mortality Rate / Million (95% eCI)<br/>Elderly Share (Ages 75+)"]
-        SidebarInputs -->|User Input| GlobalState
-        GlobalState -->|Triggers| KPICards
+    subgraph OJSState["Observable JS Reactive Runtime ({ojs})"]
+        Inputs["User Controls<br/>Period | Metric | Tier | Age"]
+        State["Reactive State Object<br/>period, metric, geo_level, age_group, region"]
+        Inputs --> State
     end
 
-    subgraph Modules["Modular Presentation Layer (R/)"]
-        subgraph MapModule["Spatial Module (R/mod_map.R)"]
-            MapInit["Initial Mount (renderMaplibre)<br/>Carto Positron Basemap<br/>3 Pre-loaded sf Layers"]
-            MapProxy["Zero-Redraw Proxy (maplibre_proxy)<br/>set_paint_property(fill-color)<br/>set_layout_property(visibility)"]
-            MapClick["Feature Click Observer<br/>input$map_feature_click"]
-        end
-
-        subgraph PlotModule["Visualization Module (R/mod_plots.R)"]
-            TSPlot["Dual-Axis Daily Time Series<br/>Excess Deaths + ERA5 Temperature<br/>Dynamic Heatwave Zoom"]
-            RankPlot["Regional & Age Distribution<br/>95% Empirical Confidence Intervals<br/>Active Region Highlight"]
-        end
-
-        subgraph TableModule["Data Module (R/mod_tables.R)"]
-            ReactTable["Virtualized Reactable Table<br/>Inline Proportion Heatbars<br/>Client-Side Search & Sorting"]
-            CSVExport["Download Handler<br/>Clean CSV Generation"]
-        end
+    subgraph Components["Client-Side Presentation Layer"]
+        KPICards["Epidemiological Summary Strip<br/>Excess Deaths (95% eCI)<br/>Mortality Rate / 1M (95% eCI)<br/>75+ Age Group Share"]
+        Map["MapLibre GL JS (WebGL)<br/>Lazy-loaded Tiers (Region/LAD/LSOA)<br/>Dynamic Choropleth Shaders<br/>Dual-Stroke Selection Halo"]
+        TSPlot["Daily Time Series (Plotly.js)<br/>Daily Deaths & ERA5 Temperature<br/>Dynamic Heatwave Zoom Windows"]
+        RankPlot["Regional Comparison (Plotly.js)<br/>95% Empirical Confidence Intervals<br/>National Rate Benchmark Line"]
+        AgePlot["Demographic Gradient (Plotly.js)<br/>Steep Age-Related Risk Escalation"]
+        Table["Summary Data Table<br/>Scope Badges & Population Counts<br/>Interactive Column Sorting<br/>Direct CSV Export"]
     end
 
-    subgraph ClientDOM["Client Presentation (Browser)"]
-        WebGLCanvas["MapLibre WebGL Canvas<br/>GPU-Accelerated Shader Styling<br/>Zero WebSocket Redraws"]
-        PlotlyDOM["Plotly.js Interactive Visuals"]
-        TableDOM["Searchable HTML Table DOM"]
-    end
+    CSVData --> KPICards
+    CSVData --> TSPlot
+    CSVData --> RankPlot
+    CSVData --> AgePlot
+    CSVData --> Table
+    SpatialData --> Map
 
-    %% Data Pipeline
-    ParquetData -->|Columnar Scan| KPICards
-    ParquetData -->|Filter by Age & Scope| PlotModule
-    ParquetData -->|Tabular Feed| ReactTable
-    SpatialData -->|Mount Once on Startup| MapInit
-
-    %% State Synchronization
-    GlobalState -->|Reactive Signal| MapProxy
-    GlobalState -->|Reactive Signal| PlotModule
-    GlobalState -->|Reactive Signal| ReactTable
-    MapClick -->|Regional Cross-Filter| GlobalState
-
-    %% Client Rendering
-    MapProxy -->|GPU Paint Updates| WebGLCanvas
-    MapInit -->|Initial WebGL Context| WebGLCanvas
-    WebGLCanvas -.->|Polygon Click| MapClick
-    PlotModule --> PlotlyDOM
-    ReactTable --> TableDOM
-    CSVExport -.->|File Stream| BrowserDownload["Client CSV Download"]
+    State --> KPICards
+    State --> Map
+    State --> TSPlot
+    State --> RankPlot
+    State --> AgePlot
+    State --> Table
+    Map -- "Polygon Click" --> State
+    RankPlot -- "Bar Click" --> State
+    Table -- "Row Click" --> State
 ```
-
-### Directory Structure
-
-```
-UKHW2026-app/
-├── app.R                  # Main Shiny application entry point & reactive state orchestrator
-├── 00_prep_app_data.R     # Data preparation pipeline (ETL: CSVs + GPKGs -> app_data/)
-├── R/
-│   ├── mod_map.R          # WebGL choropleth map module (mapgl / MapLibre GL JS)
-│   ├── mod_plots.R        # Synchronized Plotly visualizations (Figure 1 time series & rankings)
-│   ├── mod_tables.R       # Filterable data summary table and CSV export (reactable)
-│   └── utils_ui.R         # UI utilities, formatting functions, and About/Methods modal
-├── app_data/              # High-performance Parquet tables & simplified WGS84 spatial RDS files
-│   ├── summary_estimates.parquet   # Combined national & regional estimates (396 rows)
-│   ├── daily_series.parquet        # Merged daily excess deaths & ERA5 temperatures (765 rows)
-│   ├── geo_region.rds              # 10 dissolved Region boundaries (WGS84, 0.14 MB)
-│   ├── geo_lad.rds                 # 348 Local Authority District boundaries (WGS84, 0.45 MB)
-│   └── geo_lsoa.rds                # 34,753 LSOA boundaries (simplified WGS84, 6.55 MB)
-├── data/                  # Original analysis CSV output files
-└── www/
-    └── styles.css         # Bespoke data-journalism theme stylesheet
-```
-
-### Core Technical Highlights
-1. **Zero-Redraw WebGL Mapping (`mapgl`):** Uses MapLibre GL JS to render 34,753 LSOAs, 348 LADs, and 10 Regions. Changing periods, metrics, or geographic tiers updates GPU shader expressions (`set_paint_property`) and visibility (`set_layout_property`) instantaneously without redrawing polygons or reloading GeoJSON over the WebSocket.
-2. **Synchronized Plotly Visualizations:**
-   - **Figure 1 Time Series:** Dual-axis chart linking daily national excess deaths to ERA5 mean temperatures with shaded bands for the 5 heatwave periods and reactive zoom windows.
-   - **Regional Rankings:** Horizontal interval plots with 95% empirical confidence intervals and reactive cross-highlighting from map clicks.
-   - **Demographic Gradient:** Visualizes the steep exponential risk gradient across age groups (`0–64`, `65–74`, `75–84`, `85+`).
-3. **Responsive Client-Side Table (`reactable`):** Fast multi-column sorting, text search, proportional inline heat bars, and direct CSV data export.
-4. **Columnar Parquet & Pre-Simplified Spatial Cache:** Tabular datasets load in sub-millisecond times via `arrow::read_parquet()`, while spatial layers are pre-joined in wide format and simplified with `rmapshaper::ms_simplify()` in `EPSG:4326`.
 
 ---
 
-## Quickstart: Running the Application
+## Running the Application
 
-### 1. Prerequisites
-Ensure R (>= 4.3.0) is installed. Install the required CRAN packages:
+Because the application is built with static Quarto and client-side Observable JS, it runs entirely in the browser without requiring a backend R server process. Due to browser security restrictions on asynchronous asset loading (CORS), it must be served over HTTP rather than opened as a raw `file://` URL.
 
-```r
-install.packages(c(
-  "shiny",
-  "bslib",
-  "arrow",
-  "data.table",
-  "sf",
-  "mapgl",
-  "plotly",
-  "reactable",
-  "htmltools",
-  "rmapshaper",
-  "dplyr"
-))
+### 1. Live Preview with Quarto CLI
+
+Using the Quarto CLI:
+
+```bash
+quarto preview index.qmd
 ```
 
-### 2. Launching the App
-In R or RStudio, run:
+This starts a local development server with hot-reloading and automatically opens the dashboard in your default browser.
 
+### 2. Serving the Built `_site` Directory
+
+The production-ready assets are compiled into the `_site/` directory. You can serve them using any static web server:
+
+**Using Python:**
+```bash
+cd _site
+python -m http.server 8080
+```
+Then navigate to `http://localhost:8080`.
+
+**Using R (`servr`):**
 ```r
-shiny::runApp()
+servr::httd("_site", port = 8080)
 ```
 
-The application will launch on your local browser.
+**Using Node.js:**
+```bash
+npx serve _site
+```
 
-### 3. (Optional) Regenerating `app_data/`
-The repository already includes the pre-processed assets in `app_data/`. To re-run the ETL pipeline from the raw CSVs and ONS boundary files:
+### 3. (Optional) Recompiling Assets & Dashboard
 
-```r
-source("00_prep_app_data.R")
+To regenerate the web-ready CSV and GeoJSON static assets from the underlying Parquet/RDS files, then rebuild the site:
+
+```bash
+Rscript 00_prep_static_data.R
+quarto render index.qmd
 ```
 
 ---
