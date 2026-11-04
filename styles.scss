@@ -53,7 +53,14 @@ div.sourceCode,
 #quarto-dashboard-header .navbar {
   background-color: #0f172a !important;
   border-bottom: 2px solid #990000 !important;
-  padding: 0.5rem 1.25rem !important;
+  padding: 0.45rem 1.25rem !important;
+}
+
+#quarto-dashboard-header .navbar-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
 }
 
 #quarto-dashboard-header .navbar-title-text a {
@@ -64,18 +71,97 @@ div.sourceCode,
   text-decoration: none !important;
 }
 
-#quarto-dashboard-header .navbar-title-text a::after {
-  content: "LSHTM Small-Area DLNM Model";
-  display: inline-block;
-  margin-left: 0.75rem;
-  padding: 0.15rem 0.55rem;
-  font-size: 0.72rem;
+/* Top Banner Resources Dropdown (Far Right) */
+.navbar-resources-dropdown {
+  position: relative;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-resources-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #fecaca;
-  background-color: rgba(185, 28, 28, 0.35);
-  border: 1px solid rgba(254, 202, 202, 0.4);
-  border-radius: 4px;
-  vertical-align: middle;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.navbar-resources-btn:hover,
+.navbar-resources-btn[aria-expanded="true"] {
+  background-color: #990000;
+  border-color: #fca5a5;
+  color: #ffffff;
+}
+
+.navbar-resources-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 245px;
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.22);
+  padding: 0.4rem;
+  z-index: 1050;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.navbar-resources-menu.show {
+  display: flex;
+}
+
+.navbar-resources-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.48rem 0.65rem;
+  border-radius: 6px;
+  text-decoration: none !important;
+  color: #0f172a !important;
+  transition: background-color 0.12s ease;
+}
+
+.navbar-resources-menu a:hover {
+  background-color: #fef2f2;
+  color: #990000 !important;
+}
+
+.navbar-resources-menu a i {
+  font-size: 1rem;
+  color: #990000;
+  width: 18px;
+  text-align: center;
+}
+
+.navbar-resources-menu .res-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.navbar-resources-menu .res-sub {
+  font-size: 0.7rem;
+  color: #475569;
+  line-height: 1.2;
+}
+
+.navbar-resources-menu .res-divider {
+  height: 1px;
+  background-color: #e2e8f0;
+  margin: 0.25rem 0.35rem;
 }
 
 /* Sidebar Styling */
@@ -170,14 +256,102 @@ div.sourceCode,
   padding: 0.5rem 0.85rem !important;
 }
 
-.card:has(#map-viewport) .card-body {
+.card:has(#map-viewport) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* 1. Stretch ONLY the map's wrapper chain, never overriding .hidden code blocks */
+.card:has(#map-viewport) > .card-body,
+.card:has(#map-viewport) .cell:has(#map-viewport),
+.card:has(#map-viewport) .cell-output-display:has(#map-viewport),
+.card:has(#map-viewport) [id^="ojs-cell-"]:has(#map-viewport),
+.card:has(#map-viewport) .observablehq:has(#map-viewport) {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+/* 2. Ensure Quarto's internal OJS source code blocks stay hidden */
+.card:has(#map-viewport) .sourceCode,
+.card:has(#map-viewport) .cell-code,
+.card:has(#map-viewport) .hidden {
+  display: none !important;
+}
+
+/* 3. Collapse the second OJS chunk inside the map card so it doesn't take 50% height */
+.card:has(#map-viewport) > .card-body > .cell:not(:has(#map-viewport)) {
+  display: none !important;
+  flex: 0 0 0px !important;
+  height: 0 !important;
+  margin: 0 !important;
   padding: 0 !important;
 }
 
+
+
+/* Tabset Card & Content Stretch for Full-Height Right Column */
+.card.tabset {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.card.tabset .card.cell {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.card.tabset .card.cell > .card-body {
+  padding: 0.65rem 0.85rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  height: 100% !important;
+}
+
+.card.tabset .nav-tabs .nav-link {
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+  padding: 0.5rem 0.85rem;
+}
+
+.card.tabset .nav-tabs .nav-link.active {
+  color: var(--color-primary);
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-primary);
+}
+
 /* Map Viewport, Legend & Guardrail Overlays */
+.map-outer-wrapper {
+  position: relative !important;
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 #map-viewport {
-  width: 100%;
-  height: 100%;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .map-legend {
@@ -197,12 +371,55 @@ div.sourceCode,
   width: 215px;
 }
 
-.map-guardrail {
+.map-scope-bar {
   position: absolute;
   top: 12px;
   left: 12px;
+  max-width: calc(100% - 65px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(15, 23, 42, 0.95);
+  color: #ffffff;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-family: var(--font-primary);
+  font-size: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+}
+
+.map-scope-bar button.btn-back-to-lads {
+  background: #990000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.map-scope-bar button.btn-back-to-lads:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.4);
+}
+
+.map-guardrail {
+  position: absolute;
+  top: 54px;
+  left: 12px;
   right: 52px;
-  max-width: 460px;
+  max-width: 480px;
   z-index: 40;
   display: flex;
   flex-direction: column;

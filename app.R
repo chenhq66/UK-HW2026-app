@@ -88,11 +88,10 @@ ui <- bslib::page_sidebar(
       "age_group",
       label = "Age Breakdown",
       choices = c(
-        "All Ages"                     = "all",
-        "75+ Combined (High Risk)"     = "age75plus",
-        "0–64"                         = "age064",
-        "65–74"                        = "age6574",
-        "75–84"                        = "age7584",
+        "All ages"                     = "all",
+        "0-64"                         = "age064",
+        "65-74"                        = "age6574",
+        "75-84"                        = "age7584",
         "85 and above"                 = "age85plus"
       ),
       selected = "all"
@@ -271,24 +270,24 @@ server <- function(input, output, session) {
     paste0("95% eCI: [", fmt_rate(d$ratelow, 1), " – ", fmt_rate(d$ratehigh, 1), "]")
   })
   
-  # Value Box 3: Share in 75+ Age Group
+  # Value Box 3: Share in 75+ Age Groups (75-84 + 85 and above)
   output$vb_elderly_share <- shiny::renderText({
     dt_scope <- active_summary_dt()
     d_all <- dt_scope[agegr == "all"]
-    d_75p <- dt_scope[agegr == "age75plus"]
+    d_75p <- dt_scope[agegr %in% c("age7584", "age85plus")]
     
     if (nrow(d_all) == 0 || nrow(d_75p) == 0 || d_all$estimate == 0) return("—")
-    share <- (d_75p$estimate / d_all$estimate) * 100
+    share <- (sum(d_75p$estimate) / d_all$estimate) * 100
     paste0(fmt_rate(share, 1), "%")
   })
   
   output$vb_elderly_counts <- shiny::renderText({
     dt_scope <- active_summary_dt()
     d_all <- dt_scope[agegr == "all"]
-    d_75p <- dt_scope[agegr == "age75plus"]
+    d_75p <- dt_scope[agegr %in% c("age7584", "age85plus")]
     
     if (nrow(d_all) == 0 || nrow(d_75p) == 0) return("—")
-    paste0(fmt_int(d_75p$estimate), " of ", fmt_int(d_all$estimate), " total deaths")
+    paste0(fmt_int(sum(d_75p$estimate)), " of ", fmt_int(d_all$estimate), " total deaths")
   })
   
   ## Module Server Instantiation ----

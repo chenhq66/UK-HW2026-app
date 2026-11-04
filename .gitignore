@@ -1,5 +1,7 @@
 # .gitignore ----
 
+/data/
+
 # R history and workspace files
 .Rhistory
 .RData

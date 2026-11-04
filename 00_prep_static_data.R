@@ -13,11 +13,52 @@ suppressPackageStartupMessages({
 app_data_dir <- "./app_data"
 if (!dir.exists(app_data_dir)) dir.create(app_data_dir, recursive = TRUE)
 
-# 2. Export Tabular CSV Datasets ----
+# 2. Export Tabular CSV & Parquet Datasets from ./data ----
+
+period_map <- c(
+  "1 May-30 Sept"      = "study_period",
+  "HW1: 22 May-28 May" = "hw1",
+  "HW2: 18 Jun-28 Jun" = "hw2",
+  "HW3: 06 Jul-17 Jul" = "hw3",
+  "HW4: 29 Jul-05 Aug" = "hw4",
+  "HW5: 11 Aug-15 Aug" = "hw5"
+)
+
+period_label_map <- c(
+  "study_period" = "1 May–30 September 2026",
+  "hw1"          = "Heatwave 1 (22–28 May)",
+  "hw2"          = "Heatwave 2 (18–28 June)",
+  "hw3"          = "Heatwave 3 (6–17 July)",
+  "hw4"          = "Heatwave 4 (29 July–5 August)",
+  "hw5"          = "Heatwave 5 (11–15 August)"
+)
+
+std_ages <- c("age064", "age6574", "age7584", "age85plus", "all")
 
 ## Export summary_estimates.csv ----
 cat("Exporting summary_estimates.csv...\n")
-summary_dt <- as.data.table(read_parquet(file.path(app_data_dir, "summary_estimates.parquet")))
+nat_age <- fread("./data/national_age_period.csv")[agegr %in% std_ages]
+reg_age <- fread("./data/region_age_period.csv")[agegr %in% std_ages]
+
+nat_combined <- copy(nat_age)[, `:=`(
+  geo_level = "national",
+  rgn11cd   = "EW",
+  rgn11nm   = "England & Wales"
+)]
+
+reg_combined <- copy(reg_age)[, `:=`(
+  geo_level = "region",
+  rgn11cd   = RGN11CD,
+  rgn11nm   = region
+)][, c("RGN11CD", "region") := NULL]
+
+summary_dt <- rbindlist(list(nat_combined, reg_combined), use.names = TRUE)
+summary_dt[, period_key := period_map[period]]
+summary_dt[, period_label := period_label_map[period_key]]
+summary_dt[, period := period_key][, period_key := NULL]
+setcolorder(summary_dt, c("geo_level", "rgn11cd", "rgn11nm", "agegr", "age", "period", "period_label"))
+write_parquet(summary_dt, file.path(app_data_dir, "summary_estimates.parquet"))
+
 num_cols_sum <- c("estimate", "lower", "upper", "rate", "ratelow", "ratehigh")
 summary_dt[, (num_cols_sum) := lapply(.SD, round, 2), .SDcols = num_cols_sum]
 csv_summary_path <- file.path(app_data_dir, "summary_estimates.csv")
@@ -26,27 +67,21 @@ cat(sprintf("Saved %s (%d rows, %.2f KB)\n", basename(csv_summary_path), nrow(su
 
 ## Export daily_series.csv ----
 cat("Exporting daily_series.csv...\n")
-daily_dt <- as.data.table(read_parquet(file.path(app_data_dir, "daily_series.parquet")))
+nat_daily <- fread("./data/national_mort_daily.csv")[agegr %in% std_ages]
+nat_t2m   <- fread("./data/national_t2m_daily.csv")
 
-# Pre-compute 75+ combined daily series so OJS does not aggregate at runtime
-daily_75p <- daily_dt[agegr %in% c("age7584", "age85plus"), .(
-  age        = "75 and above",
-  meantemp   = round(mean(meantemp), 2),
-  population = sum(population),
-  estimate   = sum(estimate),
-  lower      = NA_real_,
-  upper      = NA_real_
-), by = .(date, hw_event)]
-daily_75p[, `:=`(
-  agegr    = "age75plus",
-  rate     = (estimate / population) * 1e6,
-  ratelow  = NA_real_,
-  ratehigh = NA_real_
-)]
-setcolorder(daily_75p, names(daily_dt))
-
-daily_export <- rbindlist(list(daily_dt, daily_75p), use.names = TRUE)
+daily_export <- merge(nat_daily, nat_t2m, by = "date", all.x = TRUE)
+daily_export[, date := as.IDate(date)]
+daily_export[, hw_event := "none"]
+daily_export[date >= as.IDate("2026-05-22") & date <= as.IDate("2026-05-28"), hw_event := "hw1"]
+daily_export[date >= as.IDate("2026-06-18") & date <= as.IDate("2026-06-28"), hw_event := "hw2"]
+daily_export[date >= as.IDate("2026-07-06") & date <= as.IDate("2026-07-17"), hw_event := "hw3"]
+daily_export[date >= as.IDate("2026-07-29") & date <= as.IDate("2026-08-05"), hw_event := "hw4"]
+daily_export[date >= as.IDate("2026-08-11") & date <= as.IDate("2026-08-15"), hw_event := "hw5"]
+setcolorder(daily_export, c("date", "hw_event", "agegr", "age", "meantemp", "population", "estimate", "lower", "upper", "rate", "ratelow", "ratehigh"))
 setorder(daily_export, date, agegr)
+write_parquet(daily_export, file.path(app_data_dir, "daily_series.parquet"))
+
 num_cols_day <- c("meantemp", "estimate", "lower", "upper", "rate", "ratelow", "ratehigh")
 daily_export[, (num_cols_day) := lapply(.SD, round, 2), .SDcols = num_cols_day]
 

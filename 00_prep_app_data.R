@@ -46,17 +46,15 @@ cat("Preparing summary_estimates.parquet...\n")
 
 nat_age <- fread("./data/national_age_period.csv")
 reg_age <- fread("./data/region_age_period.csv")
-nat_75p <- fread("./data/national_75plus_period.csv")
-reg_75p <- fread("./data/region_75plus_period.csv")
 
-nat_combined <- rbindlist(list(nat_age, nat_75p), use.names = TRUE)
+nat_combined <- copy(nat_age)
 nat_combined[, `:=`(
   geo_level = "national",
   rgn11cd   = "EW",
   rgn11nm   = "England & Wales"
 )]
 
-reg_combined <- rbindlist(list(reg_age, reg_75p), use.names = TRUE)
+reg_combined <- copy(reg_age)
 reg_combined[, `:=`(
   geo_level = "region",
   rgn11cd   = RGN11CD,
@@ -79,7 +77,7 @@ cat("Saved summary_estimates.parquet and summary_estimates.csv (", nrow(summary_
 ## Process daily series ----
 cat("Preparing daily_series.parquet...\n")
 
-nat_daily <- fread("./data/national_daily.csv")
+nat_daily <- fread("./data/national_mort_daily.csv")
 nat_t2m   <- fread("./data/national_t2m_daily.csv")
 
 daily_dt <- merge(nat_daily, nat_t2m, by = "date", all.x = TRUE)
@@ -124,6 +122,9 @@ lads_sf <- lads_wgs84 %>%
 
 ## Add LAD estimates ----
 lad_study <- fread("./data/lad_study_period.csv")
+if ("excess_deaths_per_million" %in% names(lad_study) && !"rate" %in% names(lad_study)) {
+  setnames(lad_study, "excess_deaths_per_million", "rate")
+}
 lsoa_dt   <- fread("./data/lsoa_hw_period.csv")
 
 # Study period point estimates
