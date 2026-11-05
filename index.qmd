@@ -278,6 +278,10 @@ viewof age_group = Inputs.select(
   ]),
   { value: "all", label: "Age Breakdown" }
 )
+
+age_group_note = html`<div style="font-size: 11px; color: #475569; margin-top: -6px; margin-bottom: 12px; line-height: 1.35;">
+  <i class="bi bi-info-circle me-1" style="color: #64748b;"></i>Applies to Summary Table, Regional, and Trajectory panels. Map displays All-Ages totals.
+</div>`
 ```
 
 ```{ojs}
@@ -1327,7 +1331,8 @@ viewof map = {
 
 #### Methods & Findings
 
-::: {.p-3 .bg-white .border .rounded .small}
+<!-- can add a border or styling with triple : then {.p-3 .bg-white .border .rounded .small} --->
+
 **Public Health Notice:**  
 Figures presented are **modelled statistical estimates of heat-related excess mortality** derived by LSHTM from historical temperature–mortality relationships (distributed lag non-linear models, lags 0–21 days) and ECMWF ERA5/ERA5-Land reanalysis temperatures across 34,753 LSOAs—*not* counts from registered death certificates.
 
