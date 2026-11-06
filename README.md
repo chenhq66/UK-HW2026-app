@@ -4,6 +4,7 @@
 [![Observable JS](https://img.shields.io/badge/Observable-JS-orange.svg)](https://observablehq.com/)
 [![MapLibre GL](https://img.shields.io/badge/MapLibre-WebGL-crimson.svg)](https://maplibre.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/2b9c4896-9ef4-4dd2-b28c-869158782464/deploy-status)](https://app.netlify.com/projects/uk-hw2026/deploys)
 
 An interactive, serverless **Quarto Dashboard** powered by **Observable JS ({ojs})** and **MapLibre GL JS**, designed to communicate the public health impacts of the record-breaking summer 2026 heatwaves across **England & Wales** (1 May to 30 September 2026).
 
