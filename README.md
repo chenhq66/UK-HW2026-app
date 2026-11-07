@@ -6,122 +6,128 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/2b9c4896-9ef4-4dd2-b28c-869158782464/deploy-status)](https://app.netlify.com/projects/uk-hw2026/deploys)
 
-An interactive, serverless **Quarto Dashboard** powered by **Observable JS ({ojs})** and **MapLibre GL JS**, designed to communicate the public health impacts of the record-breaking summer 2026 heatwaves across **England & Wales** (1 May to 30 September 2026).
+An interactive dashboard presenting heat-related excess mortality associated with the record-breaking summer 2026 heatwaves in England and Wales, covering 1 May to 30 September 2026.
 
-Based on the small-area environmental epidemiology framework developed at the **London School of Hygiene & Tropical Medicine (LSHTM)**, linking ECMWF ERA5-Land reanalysis temperatures to age- and location-specific temperature–mortality risk functions across **34,753 Lower Layer Super Output Areas (LSOAs)**.
+The underlying analysis uses an established small-area environmental epidemiology framework developed at the **London School of Hygiene & Tropical Medicine (LSHTM)**. It links ERA5-Land and ERA5 reanalysis temperatures to age- and LSOA-specific temperature–mortality functions across **34,753 Lower Layer Super Output Areas (LSOAs)** in England and Wales.
 
----
+**Live app:** <https://ehm-lab.github.io/apps/uk-hw2026/>
 
-## Key Epidemiological Findings
+## Interpretation note
 
-- **5,827 Total Excess Deaths** (95% empirical confidence interval [eCI]: 4,349–6,897) across the extended warm season (equivalent to 97.6 deaths per million population).
-- **Episodic Concentration (91.4%):** 5,325 excess deaths occurred within five discrete heatwave episodes, led by 18–28 June (1,808 deaths) and 6–17 July (1,468 deaths).
-- **Disproportionate Impact on Older Adults (75.7%):** People aged 75 and older accounted for 4,408 deaths (3,367–5,334), despite representing only 8.7% of the total population.
-- **Record Daily Peaks:** Single-day modelled mortality peaked on 26 June (409 deaths; 306–475) and 13 August (405 deaths; 276–479).
-- **Pronounced Geographic Disparities:** Rates per million were highest in the West Midlands (133.9), South East (133.0), and London (132.4), and lowest in the North East (41.7).
+The results are **modelled estimates of heat-related excess mortality**, not observed counts from complete 2026 death registrations. The geographical coverage is England and Wales, despite the historical `UKHW2026-app` repository name.
 
----
+## Key findings
 
-## Application Architecture & Data Flow
+- **Overall burden:** An estimated **5,827 heat-related excess deaths** (95% empirical confidence interval [eCI]: 4,349–6,897), equivalent to **97.6 per million**, occurred across England and Wales during the study period.
+- **Concentration in five identified heatwave periods:** The five periods accounted for an estimated **5,325 deaths (91.4%)**. The largest period totals were for 18–28 June (**1,808 deaths**) and 6–17 July (**1,468 deaths**).
+- **Older age groups:** People aged 75 years and over accounted for an estimated **4,408 deaths (75.7%)** (95% eCI: 3,367–5,334), while representing 8.7% of the population used in the analysis.
+- **Peak daily estimates:** The highest modelled daily totals were on 26 June (**409 deaths**; 95% eCI: 306–475) and 13 August (**405 deaths**; 95% eCI: 276–479).
+- **Regional variation:** All-age rates per million were highest in the West Midlands (**133.9**), South East (**133.0**) and London (**132.4**), and lowest in the North East (**41.7**).
+
+## What the dashboard shows
+
+- A full-study-period map of all 348 Local Authority Districts (2011 boundaries).
+- LSOA maps for each of the five identified heatwave periods after a local authority is selected.
+- A sortable summary table with England-and-Wales-level and regional estimates and 95% eCIs.
+- Comparisons across the nine English regions and Wales.
+- Age-group comparisons and a daily England-and-Wales time series.
+- Download of the currently filtered summary table as CSV.
+
+The summary table and CSV download contain England-and-Wales-level and regional results. Selecting a local authority changes the map but not the table or download. Detailed LAD- and LSOA-level outputs are available in the [study repository](https://github.com/ehm-lab/UK-HW2026).
+
+## Methods in brief
+
+- The assessment applies previously estimated age- and LSOA-specific temperature–mortality functions for England and Wales. These functions were derived from 2000–2019 data using distributed lag non-linear models with lags of 0–21 days.
+- The assessment covers 34,753 LSOAs (2011 boundaries) and uses 2020 LSOA populations and 2024 regional age-specific mortality rates.
+- Daily mean 2-m temperatures, adjusted to local time, were retrieved at LSOA centroids through the Open-Meteo Historical Weather API using ERA5-Land where available and ERA5 for coastal LSOAs where ERA5-Land data were unavailable.
+- England-and-Wales-level and regional 95% empirical confidence intervals are based on 500 Monte Carlo samples of the model coefficients.
+- The five identified heatwave periods differ in duration. For each period, the same calendar dates were applied to every LSOA. The periods were informed by UKHSA heat-health alerts and corresponding peaks in the LSOA-averaged temperature series. They are study-defined periods, not official UK-wide heatwave definitions:
+
+  1. 22–28 May 2026
+  2. 18–28 June 2026
+  3. 6–17 July 2026
+  4. 29 July–5 August 2026
+  5. 11–15 August 2026
+
+- LSOA maps show point estimates. Negative LSOA estimates are set to zero for mapping only; England-and-Wales-level and regional estimates are unchanged.
+- Comparisons with other heat-mortality assessments should be descriptive because periods, data, methods and geographical coverage may differ.
+
+For the full analytical workflow and input documentation, see the [study repository](https://github.com/ehm-lab/UK-HW2026).
+
+## Application architecture
 
 ```mermaid
-flowchart TD
-    subgraph DataStore["Static High-Performance Assets (app_data/)"]
-        CSVData["Lightweight CSV Store<br/>summary_estimates.csv (48 KB)<br/>daily_series.csv (62 KB)"]
-        SpatialData["Simplified WGS84 GeoJSON Layers<br/>geo_region.geojson (0.24 MB)<br/>geo_lad.geojson (0.90 MB)<br/>geo_lsoa.geojson (25.2 MB)"]
-    end
-
-    subgraph OJSState["Observable JS Reactive Runtime ({ojs})"]
-        Inputs["User Controls<br/>Period | Metric | Tier | Age"]
-        State["Reactive State Object<br/>period, metric, geo_level, age_group, region"]
-        Inputs --> State
-    end
-
-    subgraph Components["Client-Side Presentation Layer"]
-        KPICards["Epidemiological Summary Strip<br/>Excess Deaths (95% eCI)<br/>Mortality Rate / 1M (95% eCI)<br/>75+ Age Group Share"]
-        Map["MapLibre GL JS (WebGL)<br/>Lazy-loaded Tiers (Region/LAD/LSOA)<br/>Dynamic Choropleth Shaders<br/>Dual-Stroke Selection Halo"]
-        TSPlot["Daily Time Series (Plotly.js)<br/>Daily Deaths & ERA5 Temperature<br/>Dynamic Heatwave Zoom Windows"]
-        RankPlot["Regional Comparison (Plotly.js)<br/>95% Empirical Confidence Intervals<br/>National Rate Benchmark Line"]
-        AgePlot["Demographic Gradient (Plotly.js)<br/>Steep Age-Related Risk Escalation"]
-        Table["Summary Data Table<br/>Scope Badges & Population Counts<br/>Interactive Column Sorting<br/>Direct CSV Export"]
-    end
-
-    CSVData --> KPICards
-    CSVData --> TSPlot
-    CSVData --> RankPlot
-    CSVData --> AgePlot
-    CSVData --> Table
-    SpatialData --> Map
-
-    State --> KPICards
-    State --> Map
-    State --> TSPlot
-    State --> RankPlot
-    State --> AgePlot
-    State --> Table
-    Map -- "Polygon Click" --> State
-    RankPlot -- "Bar Click" --> State
-    Table -- "Row Click" --> State
+flowchart LR
+    Study[UK-HW2026 analysis outputs] --> Prep[Static-data preparation]
+    Prep --> Tables[CSV tables and daily series]
+    Prep --> Geography[LAD and LSOA GeoJSON]
+    Tables --> OJS[Observable JS state and queries]
+    Geography --> Map[MapLibre map]
+    OJS --> Map
+    OJS --> Results[Table and Plotly charts]
+    Quarto[Quarto dashboard] --> Map
+    Quarto --> Results
+    Map --> Site[Static _site deployment]
+    Results --> Site
 ```
 
----
+The deployed application reads precomputed CSV and GeoJSON assets. It does not run the mortality models in the browser.
 
-## Running the Application
+## Repository structure
 
-Because the application is built with static Quarto and client-side Observable JS, it runs entirely in the browser without requiring a backend R server process. Due to browser security restrictions on asynchronous asset loading (CORS), it must be served over HTTP rather than opened as a raw `file://` URL.
+- `index.qmd` — current Quarto/Observable dashboard source.
+- `styles.scss` — dashboard styling.
+- `_quarto.yml` — Quarto configuration, external libraries and navigation links.
+- `app_data/` — browser-ready summary, daily and spatial assets.
+- `_site/` — rendered static site deployed by Netlify.
+- `00_prep_static_data.R` — regenerates browser-ready tables and GeoJSON from prepared inputs.
+- `00_prep_app_data.R` — maintainer-oriented spatial preparation pipeline; some geography paths refer to the LSHTM network environment.
+- `netlify.toml` and `_headers` — deployment and caching headers.
+- `app.R`, `R/` and `www/` — legacy Shiny prototype files; they are not used by the deployed Quarto application.
 
-### 1. Live Preview with Quarto CLI
+The `data/` directory is intentionally excluded from version control. The committed `_site/` directory contains the data assets needed to serve the current deployment.
 
-Using the Quarto CLI:
+## Running the current build locally
+
+Serve the committed `_site/` directory over HTTP. For example:
+
+```bash
+cd _site
+python -m http.server 8080
+```
+
+Then open <http://localhost:8080>. Opening `_site/index.html` directly as a `file://` URL will not work reliably because the application loads data asynchronously.
+
+## Previewing or rebuilding from source
+
+To preview `index.qmd`, first create `data/` and copy these two files from the study repository's `output/` directory:
+
+- `lad_study_period.csv`
+- `lsoa_hw_period.csv`
+
+Then run:
 
 ```bash
 quarto preview index.qmd
 ```
 
-This starts a local development server with hot-reloading and automatically opens the dashboard in your default browser.
+To regenerate the summary and daily browser assets, place the following prepared study outputs in `data/`:
 
-### 2. Serving the Built `_site` Directory
+- `national_age_period.csv`
+- `region_age_period.csv`
+- `national_mort_daily.csv`
+- `national_t2m_daily.csv`
+- `lad_study_period.csv`
+- `lsoa_hw_period.csv`
 
-The production-ready assets are compiled into the `_site/` directory. You can serve them using any static web server:
-
-**Using Python:**
-```bash
-cd _site
-python -m http.server 8080
-```
-Then navigate to `http://localhost:8080`.
-
-**Using R (`servr`):**
-```r
-servr::httd("_site", port = 8080)
-```
-
-**Using Node.js:**
-```bash
-npx serve _site
-```
-
-### 3. (Optional) Recompiling Assets & Dashboard
-
-To regenerate the web-ready CSV and GeoJSON static assets from the underlying Parquet/RDS files, then rebuild the site:
+Run:
 
 ```bash
 Rscript 00_prep_static_data.R
 quarto render index.qmd
 ```
 
----
-
-## Methodological Summary & Interpretation
-
-> **Important Public Health Notice:** The figures presented in this dashboard are **modelled statistical estimates of heat-related excess mortality** associated with ERA5-Land/ERA5 reanalysis temperatures and historical baseline mortality, **not** registered death certificates.
-
-- **Exposure Data:** Daily 2-m mean and maximum temperatures retrieved at LSOA centroids via the Open-Meteo Historical Weather API using ECMWF ERA5-Land (and ERA5 for coastal areas).
-- **Mortality Models:** Age- and location-specific distributed lag non-linear models (DLNMs, lags 0–21 days) fitted to 2000–2019 data.
-- **Denominators:** 2020 LSOA mid-year populations and 2024 regional baseline mortality rates.
-- **Uncertainty:** 95% empirical confidence intervals (eCIs) derived from 500 Monte Carlo draws of the model coefficients.
-
----
+Netlify publishes the committed `_site/` directory. After changing `index.qmd`, styles or data, render the dashboard and commit the updated `_site/` files as well as the source changes.
 
 ## License
 

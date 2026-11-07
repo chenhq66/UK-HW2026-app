@@ -51,7 +51,7 @@ mutable selected_lad = null
 // Sticky heatwave selection preserved when navigating between different LADs.
 mutable selected_hw_period = "HW3: 06 Jul-17 Jul"
 
-// Derived analytical period: locked to the full summer (1 May-30 Sept) in national view,
+// Derived analysis period: locked to the full study period (1 May–30 September) in the England and Wales overview,
 // and restricted to discrete heatwave episodes (HW1-HW5) when in Small Area Focus.
 active_period = selected_lad === null ? "1 May-30 Sept" : selected_hw_period
 
@@ -119,11 +119,11 @@ lad_selector = {
   // Build the outer control container with label, search input, and native select
   const container = html`<div class="ojs-custom-control" style="margin-bottom: 12px;">
     <label style="display: block; font-size: 12px; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
-      Small Area Focus (LAD)
+      Select local authority (2011 LAD)
     </label>
     <input
       type="search"
-      placeholder="Search 348 LADs by name or code..."
+      placeholder="Search 348 LADs by name or code…"
       style="width: 100%; padding: 5px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; margin-bottom: 5px;"
     />
     <select
@@ -185,7 +185,7 @@ lad_selector = {
   return container;
 }
 
-// --- 2.2 Analytical Period Selector with State Coercion ---
+// --- 2.2 Analysis Period Selector with State Coercion ---
 // Automatically switches between full study period (national view) and heatwaves HW1-HW5 (LSOA view).
 period_selector = {
   const isNational = selected_lad === null;
@@ -202,7 +202,7 @@ period_selector = {
   // Visual badge notifying users of LSOA episode constraints
   const lsoaBadge = !isNational ? html`
     <span style="font-size: 10px; font-weight: 700; color: #990000; background: #fef2f2; border: 1px solid #fecaca; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
-      <i class="bi bi-info-circle-fill" style="color: #990000; font-size: 10px;"></i> HW1–HW5 Only
+      <i class="bi bi-info-circle-fill" style="color: #990000; font-size: 10px;"></i> Heatwave periods only
     </span>
   ` : "";
 
@@ -210,7 +210,7 @@ period_selector = {
   const container = html`<div class="ojs-custom-control" style="margin-bottom: 12px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
       <label style="font-size: 12px; font-weight: 700; color: #0f172a; margin: 0;">
-        Analytical Period
+        Analysis period
       </label>
       ${lsoaBadge}
     </div>
@@ -219,8 +219,8 @@ period_selector = {
     ></select>
     <div style="font-size: 11px; color: ${isNational ? '#475569' : '#7a0000'}; margin-top: 4px; line-height: 1.35;">
       ${isNational
-        ? "National LAD overview displays full study period (1 May–30 Sept). Select an LAD to inspect HW1–HW5."
-        : html`<i class="bi bi-shield-exclamation me-1"></i>LSOA small-area estimates are available exclusively for the 5 discrete heatwave periods (HW1–HW5).`}
+        ? "The England and Wales overview shows the full study period (1 May–30 September). Select a local authority to view the five identified heatwave periods."
+        : html`<i class="bi bi-shield-exclamation me-1"></i>The LSOA map shows estimates for the five identified heatwave periods only.`}
     </div>
   </div>`;
 
@@ -231,7 +231,7 @@ period_selector = {
   if (isNational) {
     const opt = document.createElement("option");
     opt.value = "1 May-30 Sept";
-    opt.textContent = "1 May-30 Sept (Full Study Period)";
+    opt.textContent = "1 May–30 September (study period)";
     opt.selected = true;
     selectEl.appendChild(opt);
     selectEl.value = "1 May-30 Sept";
@@ -280,7 +280,7 @@ viewof age_group = Inputs.select(
 )
 
 age_group_note = html`<div style="font-size: 11px; color: #475569; margin-top: -6px; margin-bottom: 12px; line-height: 1.35;">
-  <i class="bi bi-info-circle me-1" style="color: #64748b;"></i>Applies to Summary Table, Regional, and Trajectory panels. Map displays All-Ages totals.
+  <i class="bi bi-info-circle me-1" style="color: #64748b;"></i>Applies to the table and charts. The map always shows all-age estimates.
 </div>`
 ```
 
@@ -297,26 +297,26 @@ age_group_note = html`<div style="font-size: 11px; color: #475569; margin-top: -
   // Render context-specific badge
   const badge = isNational
     ? html`<div style="padding: 7px 10px; background: #f8fafc; border: 1px solid #94a3b8; border-radius: 6px; font-size: 12px; color: #0f172a; font-weight: 600; margin-bottom: 8px;">
-        <i class="bi bi-globe2 me-1"></i> National LAD Overview (348 LADs)
+        <i class="bi bi-globe2 me-1"></i> England and Wales overview (348 LADs)
       </div>`
     : html`<div style="padding: 7px 10px; background: #fef2f2; border: 1px solid #dc2626; border-radius: 6px; font-size: 12px; color: #7a0000; font-weight: 700; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
         <span><i class="bi bi-geo-alt-fill me-1"></i>${ladName} <span style="font-weight:400; font-size:11px;">(${selected_lad})</span></span>
-        <span style="font-size: 10px; background: #990000; color: #ffffff; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Small Area Focus</span>
+        <span style="font-size: 10px; background: #990000; color: #ffffff; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Local area view</span>
       </div>`;
 
   // One-click reset button reverting to national overview
-  const resetBtn = Inputs.button("Reset to National Overview", {
+  const resetBtn = Inputs.button("Reset to England and Wales overview", {
     reduce: () => {
       mutable selected_lad = null;
     }
   });
 
   return html`
-    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: #334155; margin-top: 10px; margin-bottom: 4px; letter-spacing: 0.04em;">Spatial Scope</div>
+    <div style="font-size: 11.5px; text-transform: uppercase; font-weight: 700; color: #334155; margin-top: 10px; margin-bottom: 4px; letter-spacing: 0.04em;">Map view</div>
     ${badge}
     ${resetBtn}
     <div style="font-size: 11.5px; color: #334155; margin-top: 10px; line-height: 1.4; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border-left: 3px solid #990000;">
-      <strong>Small Area Focus:</strong> Click any LAD polygon on the map or select from the dropdown to inspect its LSOAs. Neighboring LADs remain clickable to switch areas.
+      <strong>Local area view:</strong> Select a LAD on the map or from the list to view its LSOAs. Select another LAD to switch areas.
     </div>
   `;
 }
@@ -365,7 +365,7 @@ active_lsoa_data = {
 helpers = {
   // --- 4.1 Human-Readable Display Dictionaries ---
   const periodLabelMap = {
-    study_period: "Full Season (1 May–30 Sep 2026)",
+    study_period: "Full study period (1 May–30 September 2026)",
     hw1: "Heatwave 1 (22–28 May)",
     hw2: "Heatwave 2 (18–28 June)",
     hw3: "Heatwave 3 (6–17 July)",
@@ -421,10 +421,10 @@ helpers = {
     const stops = ["#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#990000"];
     let values, title;
     if (m === "rate") {
-      title = "Excess Deaths per Million";
+      title = "Excess deaths per million";
       values = (tier === "lad") ? [0, 35, 70, 110, 150] : [0, 15, 35, 60, 90];
     } else {
-      title = "Excess Deaths (Count)";
+      title = "Excess deaths";
       values = (tier === "lad") ? [0, 5, 15, 30, 55] : [0, 0.05, 0.12, 0.25, 0.5];
     }
     return { values, stops, title };
@@ -466,10 +466,10 @@ helpers = {
     return `
       <div style="font-weight:700; font-size:13.5px; color:#0f172a;">${ladName} <span style="font-weight:500; color:#475569;">(${ladCd})</span></div>
       <div style="font-size:11.5px; color:#334155; margin-bottom:3px;">Region: <strong>${props.rgn11nm || "—"}</strong> · Pop: ${fmtInt(popVal)}</div>
-      <div style="font-size:12px;">Excess Deaths: <strong>${fmtRate(estVal, 1)}</strong></div>
-      <div style="font-size:12px;">Rate / Million: <strong>${fmtRate(rateVal, 1)}</strong></div>
+      <div style="font-size:12px;">Excess deaths: <strong>${fmtRate(estVal, 1)}</strong></div>
+      <div style="font-size:12px;">Rate per million: <strong>${fmtRate(rateVal, 1)}</strong></div>
       <div style="font-size:11px; color:#990000; font-weight:700; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">
-        1 May–30 Sept · Click to inspect LSOAs
+        1 May–30 September · Click to view LSOAs
       </div>
     `;
   }
@@ -483,9 +483,9 @@ helpers = {
     return `
       <div style="font-weight:700; font-size:13px; color:#0f172a;">${props.lsoa11nm || props.lsoa11cd}</div>
       <div style="font-size:11.5px; color:#334155; margin-bottom:3px;">${props.lad11nm || "—"} · Pop: ${fmtInt(props.population)}</div>
-      <div style="font-size:12px;">Excess Deaths: <strong>${fmtRate(estVal, 2)}</strong></div>
-      <div style="font-size:12px;">Rate / Million: <strong>${fmtRate(rateVal, 1)}</strong></div>
-      <div style="font-size:11px; color:#475569; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">${pStr} · Small Area</div>
+      <div style="font-size:12px;">Excess deaths: <strong>${fmtRate(estVal, 2)}</strong></div>
+      <div style="font-size:12px;">Rate per million: <strong>${fmtRate(rateVal, 1)}</strong></div>
+      <div style="font-size:11px; color:#475569; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:3px;">${pStr} · LSOA estimate</div>
     `;
   }
 
@@ -511,7 +511,7 @@ helpers = {
 
 ## Column {width="45%"}
 
-### Spatial Heat Mortality Distribution
+### Map of heat-related excess mortality
 
 ```{ojs}
 
@@ -531,8 +531,8 @@ viewof map = {
       <div id="map-legend" class="map-legend"></div>
       <div id="map-spinner" style="position: absolute; inset: 0; background: rgba(255,255,255,0.88); display: flex; align-items: center; justify-content: center; z-index: 80;">
         <div style="text-align: center; font-family: var(--font-primary); padding: 16px 24px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
-          <div id="map-spinner-title" style="font-size: 0.95rem; font-weight: 700; color: #990000; margin-bottom: 4px;">Loading Geography Layers...</div>
-          <div style="font-size: 0.8rem; color: #334155;">Local Authority Districts & LSOA Small Areas</div>
+          <div id="map-spinner-title" style="font-size: 0.95rem; font-weight: 700; color: #990000; margin-bottom: 4px;">Loading map layers…</div>
+          <div style="font-size: 0.8rem; color: #334155;">Local authority districts and LSOAs</div>
         </div>
       </div>
     </div>
@@ -723,7 +723,7 @@ viewof map = {
       scopeBarEl.innerHTML = `
         <div style="display: flex; align-items: center; gap: 8px;">
           <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e;"></span>
-          <span><strong>Viewing:</strong> England &amp; Wales (348 LADs) — <span style="color: #cbd5e1;">Click any district to inspect LSOAs</span></span>
+          <span><strong>Viewing:</strong> England and Wales (348 LADs) — <span style="color: #cbd5e1;">Click a district to view its LSOAs</span></span>
         </div>
       `;
     } else {
@@ -737,8 +737,8 @@ viewof map = {
             <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
             <span><strong>Viewing:</strong> ${ladName} ${lsoaLabel} | <span style="color: #fca5a5; font-weight: 600;">${pStr}</span></span>
           </div>
-          <button id="btn-back-to-lads" class="btn-back-to-lads" title="Return to All England &amp; Wales (348 Local Authorities)">
-            × Back to All LADs
+          <button id="btn-back-to-lads" class="btn-back-to-lads" title="Return to all 348 LADs in England and Wales">
+            × Back to all LADs
           </button>
         </div>
       `;
@@ -826,7 +826,7 @@ viewof map = {
     legendEl.innerHTML = `
       <div style="font-weight: 700; color: #0f172a; margin-bottom: 2px;">${pal.title}</div>
       <div style="font-size: 10.5px; color: #334155; margin-bottom: 5px;">
-        ${isNational ? "1 May–30 Sep (Full Season) · 348 LADs" : `${pStr} · LSOA Small Areas`}
+        ${isNational ? "1 May–30 September · 348 LADs" : `${pStr} · LSOAs`}
       </div>
       <div style="height: 12px; border-radius: 3px; background: linear-gradient(to right, ${gradStops}); border: 1px solid #475569;"></div>
       <div style="display: flex; justify-content: space-between; color: #0f172a; font-size: 11px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums;">
@@ -847,7 +847,7 @@ viewof map = {
       guardrailEl.innerHTML = "";
     } else {
       const ladName = selected_lad_meta ? selected_lad_meta.LAD11NM : lad;
-      guardrailEl.innerHTML = `<div class="guardrail-pill"><i class="bi bi-info-circle me-1"></i><strong>Small-Area Methodology:</strong> LSOA values for <strong>${ladName}</strong> are non-negative truncated point estimates; 95% eCIs are modelled at Regional and National scales.</div>`;
+      guardrailEl.innerHTML = `<div class="guardrail-pill"><i class="bi bi-info-circle me-1"></i><strong>LSOA interpretation:</strong> Negative LSOA point estimates for <strong>${ladName}</strong> are set to zero for mapping only. Empirical 95% confidence intervals are available at regional and England-and-Wales levels.</div>`;
     }
   }
 }
@@ -855,9 +855,9 @@ viewof map = {
 
 ## Column {width="55%"}
 
-### Impact Visualisations {.tabset}
+### Results {.tabset}
 
-#### Summary Table
+#### Summary table
 
 ```{ojs}
 // =============================================================================
@@ -925,8 +925,8 @@ viewof map = {
   // --- 10.5 Clickable Table Headers ---
   const thGeo = html`<th>Geography${sortIndicator("rgn11nm")}</th>`; thGeo.onclick = setSort("rgn11nm");
   const thPop = html`<th style="text-align: right;">Population${sortIndicator("population")}</th>`; thPop.onclick = setSort("population");
-  const thEst = html`<th style="min-width: 155px;">Excess Deaths [95% eCI]${sortIndicator("estimate")}</th>`; thEst.onclick = setSort("estimate");
-  const thRate = html`<th style="min-width: 155px;">Rate / 1M [95% eCI]${sortIndicator("rate")}</th>`; thRate.onclick = setSort("rate");
+  const thEst = html`<th style="min-width: 155px;">Excess deaths [95% eCI]${sortIndicator("estimate")}</th>`; thEst.onclick = setSort("estimate");
+  const thRate = html`<th style="min-width: 155px;">Rate per million [95% eCI]${sortIndicator("rate")}</th>`; thRate.onclick = setSort("rate");
 
   // --- 10.6 Assemble Final HTML Table with Inline Bars ---
   return html`
@@ -951,16 +951,17 @@ viewof map = {
           <tbody>
             ${data.map(r => {
               const isNat = r.geo_level === "national";
+              const geoName = isNat ? "England and Wales" : r.rgn11nm;
               const estPct = Math.min(100, Math.max(0, ((r.estimate || 0) / maxEst) * 100)).toFixed(1);
               const ratePct = Math.min(100, Math.max(0, ((r.rate || 0) / maxRate) * 100)).toFixed(1);
               const estText = `${helpers.fmtInt(r.estimate)} [${helpers.fmtInt(r.lower)} – ${helpers.fmtInt(r.upper)}]`;
               const rateText = `${helpers.fmtRate(r.rate, 1)} [${helpers.fmtRate(r.ratelow, 1)} – ${helpers.fmtRate(r.ratehigh, 1)}]`;
 
               const rowEl = html`
-                <tr class="${isNat ? "row-national" : ""}" style="cursor: pointer;" title="Click to select ${r.rgn11nm}">
+                <tr class="${isNat ? "row-national" : ""}" style="cursor: pointer;" title="Click to select ${geoName}">
                   <td>
                     <span class="scope-badge ${isNat ? "scope-national" : "scope-region"}">${isNat ? "NAT" : "RGN"}</span>
-                    <strong>${r.rgn11nm}</strong>
+                    <strong>${geoName}</strong>
                   </td>
                   <td style="text-align: right; font-variant-numeric: tabular-nums;">${helpers.fmtInt(r.population)}</td>
                   <td>
@@ -996,14 +997,14 @@ viewof map = {
 }
 ```
 
-#### Regional Comparison
+#### Regional comparison
 
 ```{ojs}
 // =============================================================================
 // 8. REGIONAL COMPARISON HORIZONTAL BAR CHART
 // =============================================================================
-// Displays ranked excess mortality across all 10 ONS English & Welsh regions,
-// complete with asymmetrical 95% eCI error bars, national benchmark line, and click selection.
+// Displays ranked excess mortality across the nine English regions and Wales,
+// complete with asymmetrical 95% eCI error bars, an England and Wales benchmark line, and click selection.
 {
   const { period: p, metric: m, age_group: targetAge, region: rgn, regionName } = state;
 
@@ -1011,8 +1012,8 @@ viewof map = {
   const wrapper = html`
     <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
-        <span><strong>10 ONS Regions</strong> (${helpers.ageLabelMap[targetAge]}) · Error bars = 95% eCI</span>
-        <span style="font-weight: 700; color: #990000;">${rgn === "All" ? "All Regions Active" : `Highlighted: ${regionName}`}</span>
+        <span><strong>Nine English regions and Wales</strong> (${helpers.ageLabelMap[targetAge]}) · Error bars show 95% eCIs</span>
+        <span style="font-weight: 700; color: #990000;">${rgn === "All" ? "All areas shown" : `Highlighted: ${regionName}`}</span>
       </div>
       <div class="plot-host" style="flex: 1; min-height: 380px; width: 100%;"></div>
     </div>
@@ -1038,8 +1039,8 @@ viewof map = {
 
   const hoverText = d.map(x =>
     `<b>${x.rgn11nm}</b> (${helpers.ageLabelMap[targetAge]})<br>` +
-    `Rate / 1M: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
-    `Excess Deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]`
+    `Rate per million: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
+    `Excess deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]`
   );
 
   const trace = {
@@ -1070,7 +1071,7 @@ viewof map = {
     });
     annotations.push({
       x: natRow.rate, y: 1.04, xref: "x", yref: "paper",
-      text: `E&W Rate: ${helpers.fmtRate(natRow.rate, 1)}/M`,
+      text: `England and Wales: ${helpers.fmtRate(natRow.rate, 1)}/million`,
       showarrow: false,
       font: { size: 10.5, color: "#0f172a", weight: "bold" }
     });
@@ -1081,7 +1082,7 @@ viewof map = {
     font: { family: "Inter, system-ui, sans-serif", color: "#0f172a", size: 11 },
     shapes,
     annotations,
-    xaxis: { title: isRate ? "Excess Deaths per Million (with 95% eCI)" : "Excess Deaths (with 95% eCI)", gridcolor: "#e2e8f0", automargin: true },
+    xaxis: { title: isRate ? "Excess deaths per million (95% eCI)" : "Excess deaths (95% eCI)", gridcolor: "#e2e8f0", automargin: true },
     yaxis: { title: "", automargin: true, tickfont: { color: "#0f172a" } },
     margin: { l: 135, r: 20, t: 18, b: 32 },
     paper_bgcolor: "rgba(0,0,0,0)",
@@ -1113,7 +1114,7 @@ viewof map = {
 ```
 
 
-#### Age Gradient
+#### Age-group comparison
 
 ```{ojs}
 // =============================================================================
@@ -1128,8 +1129,8 @@ viewof map = {
   const wrapper = html`
     <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
-        <span><strong>Demographic Gradient</strong> · Steep age-related risk escalation</span>
-        <span style="font-weight: 700; color: #990000;">Scope: ${rgn === "All" ? "England & Wales" : regionName}</span>
+        <span><strong>Age-group comparison</strong> · Heat-related excess mortality</span>
+        <span style="font-weight: 700; color: #990000;">Area: ${rgn === "All" ? "England and Wales" : regionName}</span>
       </div>
       <div class="plot-host" style="flex: 1; min-height: 380px; width: 100%;"></div>
     </div>
@@ -1155,9 +1156,9 @@ viewof map = {
   const arrMin = d.map(x => isRate ? (x.rate - x.ratelow) : (x.estimate - x.lower));
 
   const hoverText = d.map(x =>
-    `<b>Age ${x.age}</b> (${rgn === "All" ? "England & Wales" : regionName})<br>` +
-    `Rate / 1M: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
-    `Excess Deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]<br>` +
+    `<b>Age ${x.age}</b> (${rgn === "All" ? "England and Wales" : regionName})<br>` +
+    `Rate per million: <b>${helpers.fmtRate(x.rate, 1)}</b> [95% eCI: ${helpers.fmtRate(x.ratelow, 1)} – ${helpers.fmtRate(x.ratehigh, 1)}]<br>` +
+    `Excess deaths: <b>${helpers.fmtInt(x.estimate)}</b> [95% eCI: ${helpers.fmtInt(x.lower)} – ${helpers.fmtInt(x.upper)}]<br>` +
     `Population: ${helpers.fmtInt(x.population)}`
   );
 
@@ -1180,7 +1181,7 @@ viewof map = {
   const layout = {
     font: { family: "Inter, system-ui, sans-serif", color: "#0f172a", size: 11 },
     xaxis: { title: "Age Group (Years)", automargin: true, tickfont: { color: "#0f172a" } },
-    yaxis: { title: isRate ? "Excess Deaths per Million" : "Excess Deaths (Count)", gridcolor: "#e2e8f0", automargin: true },
+    yaxis: { title: isRate ? "Excess deaths per million" : "Excess deaths", gridcolor: "#e2e8f0", automargin: true },
     margin: { t: 15, r: 20, b: 32, l: 55 },
     paper_bgcolor: "rgba(0,0,0,0)",
     plot_bgcolor: "rgba(0,0,0,0)"
@@ -1201,7 +1202,7 @@ viewof map = {
 ```
 
 
-#### Daily Time Series
+#### Daily time series
 
 ```{ojs}
 // =============================================================================
@@ -1216,8 +1217,8 @@ viewof map = {
   const wrapper = html`
     <div style="display: flex; flex-direction: column; height: 100%; width: 100%;">
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #334155; margin-bottom: 4px; padding: 0 2px;">
-        <span><strong>National Daily Trajectory</strong> (${helpers.ageLabelMap[age]}) · Shaded bands mark HW1–HW5</span>
-        <span style="font-weight: 700; color: #990000;">${p === "study_period" ? "Full Summer (153 days)" : `Zoomed to ${p.toUpperCase()}`}</span>
+        <span><strong>England and Wales daily estimates</strong> (${helpers.ageLabelMap[age]}) · Shaded bands mark the five identified heatwave periods</span>
+        <span style="font-weight: 700; color: #990000;">${p === "study_period" ? "Study period (153 days)" : `Selected: ${p.toUpperCase()}`}</span>
       </div>
       <div class="plot-host" style="flex: 1; min-height: 380px; width: 100%;"></div>
     </div>
@@ -1262,7 +1263,7 @@ viewof map = {
   // --- 7.4 Value Extraction & Rich Hover Text ---
   const isRate = (m === "rate");
   const yVals = d.map(x => isRate ? x.rate : x.estimate);
-  const yTitle = isRate ? "Daily Rate / 1M" : "Daily Excess Deaths";
+  const yTitle = isRate ? "Daily rate per million" : "Daily excess deaths";
 
   const hoverText = d.map(x => {
     const hasCi = x.lower != null && !isNaN(x.lower);
@@ -1272,7 +1273,7 @@ viewof map = {
     const rateStr = hasCi
       ? `${helpers.fmtRate(x.rate, 2)} [95% eCI: ${helpers.fmtRate(x.ratelow, 2)} – ${helpers.fmtRate(x.ratehigh, 2)}]`
       : `${helpers.fmtRate(x.rate, 2)}`;
-    return `<b>${x.dateStr}</b> (${helpers.ageLabelMap[age]})<br>Excess Deaths: <b>${estStr}</b><br>Rate / 1M: <b>${rateStr}</b><br>ERA5 Mean Temp: <b>${helpers.fmtRate(x.meantemp, 1)} °C</b>`;
+    return `<b>${x.dateStr}</b> (${helpers.ageLabelMap[age]})<br>Excess deaths: <b>${estStr}</b><br>Rate per million: <b>${rateStr}</b><br>Mean 2-m temperature: <b>${helpers.fmtRate(x.meantemp, 1)} °C</b>`;
   });
 
   // --- 7.5 Dual-Axis Plotly Traces ---
@@ -1281,7 +1282,7 @@ viewof map = {
     x: d.map(x => x.dateStr),
     y: yVals,
     type: "bar",
-    name: isRate ? "Excess Rate / 1M" : "Excess Deaths",
+    name: isRate ? "Excess rate per million" : "Excess deaths",
     marker: { color: "#990000", opacity: 0.88 },
     hoverinfo: "text",
     text: hoverText,
@@ -1295,7 +1296,7 @@ viewof map = {
     y: d.map(x => x.meantemp),
     type: "scatter",
     mode: "lines",
-    name: "ERA5 Mean Temp (°C)",
+    name: "Mean 2-m temperature (°C)",
     line: { color: "#0f172a", width: 2 },
     hoverinfo: "skip",
     yaxis: "y2"
@@ -1307,7 +1308,7 @@ viewof map = {
     shapes,
     xaxis: { title: "", range: xRange, showgrid: false, tickfont: { color: "#334155" } },
     yaxis: { title: yTitle, zeroline: true, zerolinecolor: "#94a3b8", gridcolor: "#e2e8f0", automargin: true },
-    yaxis2: { title: "Mean Temp (°C)", overlaying: "y", side: "right", showgrid: false, automargin: true },
+    yaxis2: { title: "Mean 2-m temperature (°C)", overlaying: "y", side: "right", showgrid: false, automargin: true },
     legend: { orientation: "h", x: 0.5, xanchor: "center", y: 1.14, font: { size: 11 } },
     margin: { t: 24, r: 42, b: 28, l: 48 },
     paper_bgcolor: "rgba(0,0,0,0)",
@@ -1329,17 +1330,30 @@ viewof map = {
 ```
 
 
-#### Methods & Findings
+#### Methods and findings
 
-<!-- can add a border or styling with triple : then {.p-3 .bg-white .border .rounded .small} --->
+**Interpretation note**
 
-**Public Health Notice:**  
-Figures presented are **modelled statistical estimates of heat-related excess mortality** derived by LSHTM from historical temperature–mortality relationships (distributed lag non-linear models, lags 0–21 days) and ECMWF ERA5/ERA5-Land reanalysis temperatures across 34,753 LSOAs—*not* counts from registered death certificates.
+The dashboard presents **modelled estimates of heat-related excess mortality**, not observed counts from complete 2026 death registrations. Estimates cover England and Wales from 1 May to 30 September 2026.
 
-**Key Epidemiological Findings (1 May – 30 September 2026):**
-* **Total Burden:** **5,827 excess deaths** (95% eCI: 4,349–6,897) across England & Wales (**97.6 per million**).
-* **Episodic Concentration:** **91.4%** of total summer heat mortality (5,325 deaths) occurred during five discrete heatwaves, peaking in **HW2 (18–28 June: 1,808 deaths)** and **HW3 (6–17 July: 1,468 deaths)**.
-* **Demographic Vulnerability:** Older adults in the **75–84** and **85 and above** age groups experienced the steepest excess mortality rates across all regions.
-* **Geographic Inequality:** Excess mortality rates per million were highest in the **West Midlands (133.9)**, **South East (133.0)**, and **London (132.4)**, and lowest in the **North East (41.7)**.
-:::
+**Methods in brief**
+
+- The assessment applies previously estimated age- and LSOA-specific temperature–mortality functions for England and Wales. These functions were derived from 2000–2019 data using distributed lag non-linear models with lags of 0–21 days.
+- The assessment covers 34,753 LSOAs (2011 boundaries) and uses 2020 LSOA populations and 2024 regional age-specific mortality rates.
+- Daily mean 2-m temperatures, adjusted to local time, were retrieved at LSOA centroids through the Open-Meteo Historical Weather API using ERA5-Land where available and ERA5 for coastal LSOAs where ERA5-Land data were unavailable.
+- England-and-Wales-level and regional 95% empirical confidence intervals (eCIs) are based on 500 Monte Carlo samples of the model coefficients.
+- The five identified heatwave periods differ in duration. For each period, the same calendar dates were applied to every LSOA. The periods were informed by UKHSA heat-health alerts and corresponding peaks in the LSOA-averaged temperature series; they are study-defined periods, not official UK-wide heatwave definitions.
+- LSOA maps show point estimates. Negative LSOA estimates are set to zero for mapping only; England-and-Wales-level and regional estimates are unchanged.
+
+**Data availability**
+
+The summary table and CSV download contain England-and-Wales-level and regional results. Selecting a local authority changes the map but not the table or download. Detailed LAD- and LSOA-level outputs and the analysis code are available in the [study repository](https://github.com/ehm-lab/UK-HW2026).
+
+**Key findings**
+
+- **Overall burden:** An estimated **5,827 heat-related excess deaths** (95% eCI: 4,349–6,897), equivalent to **97.6 per million**, occurred across England and Wales during the study period.
+- **Concentration in the five identified heatwave periods:** These periods accounted for an estimated **5,325 deaths (91.4%)**. The largest period totals were for 18–28 June (**1,808 deaths**) and 6–17 July (**1,468 deaths**).
+- **Older age groups:** People aged 75 years and over accounted for an estimated **4,408 deaths (75.7%)** (95% eCI: 3,367–5,334), while representing 8.7% of the population used in the analysis.
+- **Peak daily estimates:** The highest modelled daily totals were on 26 June (**409 deaths**; 95% eCI: 306–475) and 13 August (**405 deaths**; 95% eCI: 276–479).
+- **Regional variation:** All-age rates per million were highest in the West Midlands (**133.9**), South East (**133.0**) and London (**132.4**), and lowest in the North East (**41.7**).
 
